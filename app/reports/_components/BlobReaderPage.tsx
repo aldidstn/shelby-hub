@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ReaderActions } from './ReaderActions'
+import { getBlobReadUrl } from '../_lib/download'
 import type { Report } from '../_lib/types'
 
-const SHELBY_API_BASE = 'https://api.shelbynet.shelby.xyz/shelby/v1/blobs'
+
 
 const TEXT_TYPES   = new Set<Report['fileType']>(['md', 'txt', 'json', 'csv'])
 const VIDEO_TYPES  = new Set<Report['fileType']>(['mp4', 'webm', 'mov'])
@@ -16,6 +17,7 @@ interface BlobReaderPageProps {
   blobName: string
   fileType: Report['fileType']
   title: string
+  network?: 'shelbynet' | 'testnet'
 }
 
 // ─── Minimal markdown renderer ────────────────────────────────────────────────
@@ -52,28 +54,37 @@ function renderMarkdown(text: string) {
   return nodes
 }
 
-export function BlobReaderPage({ blobAccount, blobName, fileType, title }: BlobReaderPageProps) {
-  const blobUrl = `${SHELBY_API_BASE}/${blobAccount}/${blobName}`
+export function BlobReaderPage({ blobAccount, blobName, fileType, title, network = 'testnet' }: BlobReaderPageProps) {
+  const blobUrl = getBlobReadUrl(blobAccount, blobName, network)
 
-  const [textContent, setTextContent] = useState<string | null>(null)
-  const [loading, setLoading]         = useState(true)
-  const [fetchError, setFetchError]   = useState<string | null>(null)
+  const [textContent, setTextContent]   = useState<string | null>(null)
+  const [objectUrl, setObjectUrl]       = useState<string | null>(null)
+  const [loading, setLoading]           = useState(true)
+  const [fetchError, setFetchError]     = useState<string | null>(null)
 
   useEffect(() => {
-    if (!TEXT_TYPES.has(fileType)) {
-      // Binary types (video/audio/pdf): render directly, let media elements surface errors
-      setLoading(false)
-      return
-    }
+    let revoke: string | null = null
     setLoading(true)
     setFetchError(null)
+    setTextContent(null)
+    setObjectUrl(null)
+
     fetch(blobUrl)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.text()
+        if (TEXT_TYPES.has(fileType)) return r.text().then((t) => { setTextContent(t) })
+        // Binary types: create a local object URL so the browser never sees
+        // Content-Disposition: attachment from the Shelby API
+        return r.blob().then((b) => {
+          const url = URL.createObjectURL(b)
+          revoke = url
+          setObjectUrl(url)
+        })
       })
-      .then((t) => { setTextContent(t); setLoading(false) })
+      .then(() => setLoading(false))
       .catch((e) => { setFetchError(e.message); setLoading(false) })
+
+    return () => { if (revoke) URL.revokeObjectURL(revoke) }
   }, [blobUrl, fileType])
 
   return (
@@ -172,17 +183,16 @@ export function BlobReaderPage({ blobAccount, blobName, fileType, title }: BlobR
           )}
 
           {/* Video */}
-          {VIDEO_TYPES.has(fileType) && !fetchError && (
+          {VIDEO_TYPES.has(fileType) && !fetchError && objectUrl && (
             <video
-              src={blobUrl}
+              src={objectUrl}
               controls
               className="w-full rounded-xl border border-divider max-h-[70vh]"
-              onError={() => setFetchError('Could not load video from Shelby network.')}
             />
           )}
 
           {/* Audio */}
-          {AUDIO_TYPES.has(fileType) && !fetchError && (
+          {AUDIO_TYPES.has(fileType) && !fetchError && objectUrl && (
             <div className="p-8 bg-surface rounded-xl border border-divider flex flex-col items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-pink-light flex items-center justify-center">
                 <svg className="w-8 h-8 text-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -191,17 +201,16 @@ export function BlobReaderPage({ blobAccount, blobName, fileType, title }: BlobR
               </div>
               <p className="text-sm font-medium text-text-primary">{title}</p>
               <audio
-                src={blobUrl}
+                src={objectUrl}
                 controls
                 className="w-full"
-                onError={() => setFetchError('Could not load audio from Shelby network.')}
               />
             </div>
           )}
 
           {/* PDF */}
-          {fileType === 'pdf' && (
-            <PdfViewer blobUrl={blobUrl} title={title} onError={setFetchError} />
+          {fileType === 'pdf' && !fetchError && objectUrl && (
+            <PdfViewer objectUrl={objectUrl} title={title} />
           )}
 
         </div>
@@ -223,15 +232,13 @@ export function BlobReaderPage({ blobAccount, blobName, fileType, title }: BlobR
   )
 }
 
-// ─── PDF viewer with HEAD-check already done by parent ────────────────────────
-function PdfViewer({ blobUrl, title, onError }: { blobUrl: string; title: string; onError: (msg: string) => void }) {
+function PdfViewer({ objectUrl, title }: { objectUrl: string; title: string }) {
   return (
     <iframe
-      src={blobUrl}
+      src={objectUrl}
       className="w-full rounded-xl border border-divider"
       style={{ height: '80vh' }}
       title={title}
-      onError={() => onError('Could not load PDF from Shelby network.')}
     />
   )
 }

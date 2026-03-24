@@ -18,6 +18,7 @@ export interface Report {
   fileType: 'pdf' | 'md' | 'csv' | 'json' | 'mp4' | 'webm' | 'mov' | 'mp3' | 'wav' | 'ogg' | 'txt'
   tags: string[]
   // Shelby blob info — present when file is stored on-chain
-  blobAccount?: string  // Shelby account that uploaded the file
-  blobName?: string     // Blob name on the Shelby network
+  blobAccount?: string                    // Shelby account that uploaded the file
+  blobName?: string                       // Blob name on the Shelby network
+  network?: 'shelbynet' | 'testnet'       // Which Shelby network the blob lives on
 }

@@ -1,4 +1,7 @@
-const SHELBY_API_BASE = 'https://api.shelbynet.shelby.xyz/shelby/v1/blobs'
+const BASE_URLS: Record<'shelbynet' | 'testnet', string> = {
+  shelbynet: 'https://api.shelbynet.shelby.xyz/shelby/v1/blobs',
+  testnet:   'https://api.testnet.shelby.xyz/shelby/v1/blobs',
+}
 
 export type DownloadStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -7,25 +10,30 @@ export interface DownloadResult {
   message?: string
 }
 
+/** Returns the public REST URL for inline reading (text fetch / media src). */
+export function getBlobReadUrl(
+  blobAccount: string,
+  blobName: string,
+  network: 'shelbynet' | 'testnet' = 'testnet',
+): string {
+  return `${BASE_URLS[network]}/${blobAccount}/${blobName}`
+}
+
 /**
- * Downloads a blob from the Shelby network using the public REST endpoint.
- * REST pattern: GET /shelby/v1/blobs/<account>/<blob-name>
- * No auth headers required for cross-account access.
+ * Downloads a blob from the Shelby network via the public REST API.
+ * GET /shelby/v1/blobs/<account>/<blob-name> — no auth required.
  */
 export async function downloadShelbyBlob(
   blobAccount: string,
   blobName: string,
   fileName: string,
+  network: 'shelbynet' | 'testnet' = 'testnet',
 ): Promise<DownloadResult> {
-  const url = `${SHELBY_API_BASE}/${blobAccount}/${blobName}`
-
+  const url = getBlobReadUrl(blobAccount, blobName, network)
   const response = await fetch(url)
 
   if (!response.ok) {
-    return {
-      status: 'error',
-      message: `Failed to fetch blob: ${response.status} ${response.statusText}`,
-    }
+    return { status: 'error', message: `HTTP ${response.status} ${response.statusText}` }
   }
 
   const blob = await response.blob()

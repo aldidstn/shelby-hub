@@ -24,6 +24,7 @@ export default async function ReportReaderPage({ params, searchParams }: Props) 
     const blobName    = typeof sp.blobName    === 'string' ? sp.blobName    : undefined
     const fileType    = typeof sp.fileType    === 'string' ? sp.fileType    : 'pdf'
     const title       = typeof sp.title       === 'string' ? sp.title       : 'Untitled'
+    const network     = sp.network === 'shelbynet' ? 'shelbynet' : 'testnet'
 
     if (blobAccount && blobName) {
       return (
@@ -32,6 +33,7 @@ export default async function ReportReaderPage({ params, searchParams }: Props) 
           blobName={blobName}
           fileType={fileType as Report['fileType']}
           title={title}
+          network={network}
         />
       )
     }

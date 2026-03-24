@@ -28,15 +28,19 @@ export interface UploadProgress {
 export interface UploadParams {
   file: File
   blobName: string
-  expirationMs: number          // milliseconds from now
+  expirationMs: number
   network: 'shelbynet' | 'testnet'
   walletAddress: string
   signAndSubmit: (payload: { data: unknown; options?: { maxGasAmount?: number; gasUnitPrice?: number } }) => Promise<{ hash: string }>
   onProgress: (p: UploadProgress) => void
 }
 
-// Blob registration is gas-intensive (Merkle root + erasure coding metadata).
-// Set a safe ceiling so the wallet simulation always has enough headroom.
+export interface UploadResult {
+  id: string          // tx hash
+  blobAccount: string // uploader's wallet address
+  blobName: string    // key on the Shelby network
+}
+
 const REGISTER_BLOB_MAX_GAS = 500_000
 
 const NETWORK_MAP: Record<string, ShelbyNetwork> = {
@@ -44,10 +48,10 @@ const NETWORK_MAP: Record<string, ShelbyNetwork> = {
   testnet:   Network.TESTNET   as ShelbyNetwork,
 }
 
-export async function uploadToShelby(params: UploadParams): Promise<string> {
+export async function uploadToShelby(params: UploadParams): Promise<UploadResult> {
   const { file, blobName, expirationMs, network, walletAddress, signAndSubmit, onProgress } = params
 
-  const shelbyNetwork = NETWORK_MAP[network] ?? Network.SHELBYNET
+  const shelbyNetwork = NETWORK_MAP[network] ?? Network.TESTNET
   const rpcClient = new ShelbyRPCClient({ network: shelbyNetwork })
   const erasureConfig = defaultErasureCodingConfig()
 
@@ -61,9 +65,9 @@ export async function uploadToShelby(params: UploadParams): Promise<string> {
   const provider = await createDefaultErasureCodingProvider()
   const commitments = await generateCommitments(provider, blobData)
 
-  const expirationMicros = (Date.now() + expirationMs) * 1000 // ms → µs
+  const expirationMicros = (Date.now() + expirationMs) * 1000
 
-  // Step 3 — Build on-chain registration payload and sign via wallet
+  // Step 3 — Register blob on-chain via wallet
   onProgress({ step: 'registering', uploadedBytes: 0, totalBytes: file.size })
   const { AccountAddress } = await import('@aptos-labs/ts-sdk')
   const payload = ShelbyBlobClient.createRegisterBlobPayload({
@@ -81,9 +85,8 @@ export async function uploadToShelby(params: UploadParams): Promise<string> {
     options: { maxGasAmount: REGISTER_BLOB_MAX_GAS },
   })
 
-  // Step 4 — Upload blob data to Shelby RPC storage
+  // Step 4 — Upload blob data to Shelby nodes
   onProgress({ step: 'uploading', uploadedBytes: 0, totalBytes: file.size })
-
   await rpcClient.putBlob({
     account: walletAddress,
     blobName,
@@ -93,5 +96,5 @@ export async function uploadToShelby(params: UploadParams): Promise<string> {
     },
   })
 
-  return txResponse.hash
+  return { id: txResponse.hash, blobAccount: walletAddress, blobName }
 }

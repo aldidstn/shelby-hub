@@ -12,6 +12,7 @@
     "@aptos-labs/ts-sdk": "^5.2.1",
     "@aptos-labs/wallet-adapter-core": "^8.5.0",
     "@aptos-labs/wallet-adapter-react": "^8.3.2",
+    "@aws-sdk/client-s3": "^3.1015.0",
     "@shelby-protocol/sdk": "^0.2.4",
     "next": "16.2.1",
     "react": "19.2.4",

@@ -2,31 +2,26 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
-import { getAptosTransactionExplorerUrl } from '@shelby-protocol/sdk/browser'
 import { uploadToShelby, type UploadStep, type UploadProgress } from '../_lib/upload'
 import type { Report } from '../_lib/types'
 
 // ─── Accepted file types ─────────────────────────────────────────────────────
-const ACCEPTED_TYPES: Record<string, { label: string; icon: string; color: string }> = {
-  // Documents
-  'application/pdf':               { label: 'PDF',      icon: '📄', color: 'text-negative' },
-  'text/markdown':                 { label: 'Markdown', icon: '📝', color: 'text-text-secondary' },
-  'text/plain':                    { label: 'Text',     icon: '📝', color: 'text-text-secondary' },
-  'application/json':              { label: 'JSON',     icon: '🗂️', color: 'text-warning' },
-  'text/csv':                      { label: 'CSV',      icon: '📊', color: 'text-positive' },
-  // Video
-  'video/mp4':                     { label: 'MP4',      icon: '🎬', color: 'text-blue-600' },
-  'video/webm':                    { label: 'WebM',     icon: '🎬', color: 'text-blue-600' },
-  'video/quicktime':               { label: 'MOV',      icon: '🎬', color: 'text-blue-600' },
-  // Audio
-  'audio/mpeg':                    { label: 'MP3',      icon: '🎵', color: 'text-purple-600' },
-  'audio/wav':                     { label: 'WAV',      icon: '🎵', color: 'text-purple-600' },
-  'audio/ogg':                     { label: 'OGG',      icon: '🎵', color: 'text-purple-600' },
+const ACCEPTED_TYPES: Record<string, { label: string; icon: string }> = {
+  'application/pdf':  { label: 'PDF',      icon: '📄' },
+  'text/markdown':    { label: 'Markdown', icon: '📝' },
+  'text/plain':       { label: 'Text',     icon: '📝' },
+  'application/json': { label: 'JSON',     icon: '🗂️' },
+  'text/csv':         { label: 'CSV',      icon: '📊' },
+  'video/mp4':        { label: 'MP4',      icon: '🎬' },
+  'video/webm':       { label: 'WebM',     icon: '🎬' },
+  'video/quicktime':  { label: 'MOV',      icon: '🎬' },
+  'audio/mpeg':       { label: 'MP3',      icon: '🎵' },
+  'audio/wav':        { label: 'WAV',      icon: '🎵' },
+  'audio/ogg':        { label: 'OGG',      icon: '🎵' },
 }
 
 const ACCEPT_ATTR = Object.keys(ACCEPTED_TYPES).join(',')
 
-// ─── Expiration presets ───────────────────────────────────────────────────────
 const EXPIRY_PRESETS = [
   { label: '7 days',  ms: 7   * 24 * 60 * 60 * 1000 },
   { label: '30 days', ms: 30  * 24 * 60 * 60 * 1000 },
@@ -34,7 +29,6 @@ const EXPIRY_PRESETS = [
   { label: '1 year',  ms: 365 * 24 * 60 * 60 * 1000 },
 ]
 
-// ─── Step labels ─────────────────────────────────────────────────────────────
 const STEP_LABELS: Record<UploadStep, string> = {
   idle:        'Waiting',
   reading:     'Reading file…',
@@ -47,17 +41,6 @@ const STEP_LABELS: Record<UploadStep, string> = {
 
 const UPLOAD_STEPS: UploadStep[] = ['reading', 'generating', 'registering', 'uploading', 'done']
 
-function formatBytes(bytes: number) {
-  if (bytes < 1024)        return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function slugify(name: string) {
-  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9.\-/]/g, '')
-}
-
-// ─── MIME → fileType mapping ──────────────────────────────────────────────────
 const MIME_TO_FILE_TYPE: Record<string, Report['fileType']> = {
   'application/pdf':  'pdf',
   'text/markdown':    'md',
@@ -72,30 +55,37 @@ const MIME_TO_FILE_TYPE: Record<string, Report['fileType']> = {
   'audio/ogg':        'ogg',
 }
 
-// ─── Props ────────────────────────────────────────────────────────────────────
+function formatBytes(bytes: number) {
+  if (bytes < 1024)        return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function slugify(name: string) {
+  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9.\-/]/g, '')
+}
+
 interface UploadModalProps {
   onClose: () => void
   onUploadComplete: (report: Report) => void
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   const { connected, account, wallets, connect, signAndSubmitTransaction } = useWallet()
 
-  const [file, setFile]           = useState<File | null>(null)
-  const [dragging, setDragging]   = useState(false)
-  const [blobName, setBlobName]   = useState('')
-  const [expiryMs, setExpiryMs]   = useState(EXPIRY_PRESETS[1].ms)   // default 30 days
-  const [network, setNetwork]     = useState<'shelbynet' | 'testnet'>('shelbynet')
-  const [access, setAccess]       = useState<'free' | 'premium'>('free')
-  const [price, setPrice]         = useState('')
-  const [progress, setProgress]   = useState<UploadProgress | null>(null)
-  const [txHash, setTxHash]       = useState<string | null>(null)
-  const [copied, setCopied]       = useState(false)
+  const [file, setFile]         = useState<File | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const [blobName, setBlobName] = useState('')
+  const [expiryMs, setExpiryMs] = useState(EXPIRY_PRESETS[1].ms)
+  const [network, setNetwork]   = useState<'shelbynet' | 'testnet'>('testnet')
+  const [access, setAccess]     = useState<'free' | 'premium'>('free')
+  const [price, setPrice]       = useState('')
+  const [progress, setProgress] = useState<UploadProgress | null>(null)
+  const [txHash, setTxHash]     = useState<string | null>(null)
+  const [copied, setCopied]     = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // ── File selection ──────────────────────────────────────────────────────────
   function handleFile(f: File) {
     setFile(f)
     setProgress(null)
@@ -118,14 +108,13 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     if (f) handleFile(f)
   }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Upload ──────────────────────────────────────────────────────────────────
   async function handleUpload() {
     if (!file || !connected || !account) return
 
     setProgress({ step: 'reading', uploadedBytes: 0, totalBytes: file.size })
 
     try {
-      const hash = await uploadToShelby({
+      const result = await uploadToShelby({
         file,
         blobName,
         expirationMs: expiryMs,
@@ -135,33 +124,33 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
           signAndSubmitTransaction(payload as Parameters<typeof signAndSubmitTransaction>[0]),
         onProgress: setProgress,
       })
-      setTxHash(hash)
+
+      setTxHash(result.id)
       setProgress((p) => p ? { ...p, step: 'done' } : null)
 
-      // Build report object and notify parent so it appears in the library
-      if (file && account) {
-        const fileType = MIME_TO_FILE_TYPE[file.type] ?? 'pdf'
-        const titleNoExt = file.name.replace(/\.[^.]+$/, '')
-        const parsedPrice = access === 'premium' ? parseFloat(price) : undefined
-        onUploadComplete({
-          id: hash,
-          title: titleNoExt,
-          description: `Uploaded to Shelby ${network === 'shelbynet' ? 'ShelbyNet' : 'Testnet'}`,
-          type: file.type.startsWith('video/') || file.type.startsWith('audio/') ? 'Report' : 'Document',
-          access,
-          price: parsedPrice && !isNaN(parsedPrice) ? parsedPrice : undefined,
-          likes: 0,
-          downloads: 0,
-          author: account.address.toString().slice(0, 10) + '…',
-          authorAddress: account.address.toString(),
-          createdAt: new Date().toISOString(),
-          onChain: true,
-          fileType,
-          tags: [],
-          blobAccount: account.address.toString(),
-          blobName,
-        })
-      }
+      const fileType   = MIME_TO_FILE_TYPE[file.type] ?? 'pdf'
+      const titleNoExt = file.name.replace(/\.[^.]+$/, '')
+      const parsedPrice = access === 'premium' ? parseFloat(price) : undefined
+
+      onUploadComplete({
+        id:            result.id,
+        title:         titleNoExt,
+        description:   `Uploaded to Shelby ${network === 'testnet' ? 'Testnet' : 'ShelbyNet'}`,
+        type:          file.type.startsWith('video/') || file.type.startsWith('audio/') ? 'Report' : 'Document',
+        access,
+        price:         parsedPrice && !isNaN(parsedPrice) ? parsedPrice : undefined,
+        likes:         0,
+        downloads:     0,
+        author:        account.address.toString().slice(0, 10) + '…',
+        authorAddress: account.address.toString(),
+        createdAt:     new Date().toISOString(),
+        onChain:       true,
+        fileType,
+        tags:          [],
+        blobAccount:   result.blobAccount,
+        blobName:      result.blobName,
+        network,
+      })
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unexpected error'
       setProgress((p) => p ? { ...p, step: 'error', errorMessage: msg } : null)
@@ -172,10 +161,6 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   const isDone      = progress?.step === 'done'
   const isError     = progress?.step === 'error'
   const fileInfo    = file ? ACCEPTED_TYPES[file.type] : null
-
-  const explorerUrl = txHash
-    ? getAptosTransactionExplorerUrl(network, txHash)
-    : null
 
   function handleCopyHash() {
     if (!txHash) return
@@ -222,22 +207,13 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 : 'border-divider hover:border-pink/50 hover:bg-surface'
             }`}
           >
-            <input
-              ref={inputRef}
-              type="file"
-              accept={ACCEPT_ATTR}
-              className="sr-only"
-              onChange={handleInputChange}
-            />
-
+            <input ref={inputRef} type="file" accept={ACCEPT_ATTR} className="sr-only" onChange={handleInputChange} />
             {file ? (
               <>
                 <span className="text-3xl">{fileInfo?.icon ?? '📁'}</span>
                 <div className="text-center">
                   <p className="text-sm font-medium text-text-primary line-clamp-1">{file.name}</p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {fileInfo?.label ?? 'File'} · {formatBytes(file.size)}
-                  </p>
+                  <p className="text-xs text-text-muted mt-0.5">{fileInfo?.label ?? 'File'} · {formatBytes(file.size)}</p>
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); setFile(null); setBlobName('') }}
@@ -259,9 +235,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 </div>
                 <div className="flex flex-wrap justify-center gap-1">
                   {['PDF', 'MD', 'CSV', 'JSON', 'MP4', 'MP3', 'WAV'].map((t) => (
-                    <span key={t} className="px-1.5 py-0.5 rounded text-xs bg-surface border border-divider text-text-muted">
-                      {t}
-                    </span>
+                    <span key={t} className="px-1.5 py-0.5 rounded text-xs bg-surface border border-divider text-text-muted">{t}</span>
                   ))}
                 </div>
               </>
@@ -269,7 +243,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
           </div>
         )}
 
-        {/* Upload form — shown only when file is selected and not done */}
+        {/* Upload form */}
         {file && !isDone && (
           <>
             {/* Blob name */}
@@ -314,7 +288,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-text-primary">Network</label>
               <div className="flex gap-1.5">
-                {(['shelbynet', 'testnet'] as const).map((n) => (
+                {(['testnet', 'shelbynet'] as const).map((n) => (
                   <button
                     key={n}
                     onClick={() => setNetwork(n)}
@@ -326,7 +300,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                     }`}
                   >
                     <span className={`w-1.5 h-1.5 rounded-full ${n === 'shelbynet' ? 'bg-positive' : 'bg-warning'}`} />
-                    {n === 'shelbynet' ? 'ShelbyNet' : 'Testnet'}
+                    {n === 'testnet' ? 'Testnet' : 'ShelbyNet'}
                   </button>
                 ))}
               </div>
@@ -345,9 +319,6 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                       : 'bg-surface text-text-secondary border-divider hover:border-positive hover:text-positive'
                   }`}
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
                   Free
                 </button>
                 <button
@@ -359,20 +330,14 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                       : 'bg-surface text-text-secondary border-divider hover:border-pink hover:text-pink'
                   }`}
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                  </svg>
                   Paid
                 </button>
               </div>
-
               {access === 'premium' && (
                 <div className="flex items-center gap-2 mt-1">
                   <div className="relative flex-1">
                     <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
+                      type="number" min="0.01" step="0.01"
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
                       placeholder="0.00"
@@ -384,28 +349,24 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                   <p className="text-xs text-text-muted whitespace-nowrap">price to unlock</p>
                 </div>
               )}
-
               {access === 'free' && (
                 <p className="text-xs text-text-muted">Anyone can view and download this file</p>
               )}
             </div>
 
-            {/* Progress steps */}
+            {/* Progress */}
             {progress && (
               <div className="flex flex-col gap-3 p-4 bg-surface rounded-xl border border-divider">
-                {/* Step indicators */}
                 <div className="flex items-center gap-1">
                   {UPLOAD_STEPS.map((s, i) => {
                     const currentIdx = UPLOAD_STEPS.indexOf(progress.step)
-                    const done = i < currentIdx || progress.step === 'done'
-                    const active = s === progress.step
+                    const done    = i < currentIdx || progress.step === 'done'
+                    const active  = s === progress.step
                     const upcoming = i > currentIdx && progress.step !== 'done'
                     return (
                       <div key={s} className="flex items-center gap-1 flex-1">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                          done    ? 'bg-positive text-white' :
-                          active  ? 'bg-pink text-white' :
-                          upcoming? 'bg-divider text-text-muted' : ''
+                          done ? 'bg-positive text-white' : active ? 'bg-pink text-white' : upcoming ? 'bg-divider text-text-muted' : ''
                         }`}>
                           {done ? (
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -424,13 +385,9 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                     )
                   })}
                 </div>
-
-                {/* Current step label */}
                 <p className={`text-xs font-medium ${isError ? 'text-negative' : 'text-text-primary'}`}>
                   {STEP_LABELS[progress.step]}
                 </p>
-
-                {/* Upload progress bar */}
                 {progress.step === 'uploading' && progress.totalBytes > 0 && (
                   <div className="flex flex-col gap-1">
                     <div className="h-1.5 bg-divider rounded-full overflow-hidden">
@@ -444,8 +401,6 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                     </p>
                   </div>
                 )}
-
-                {/* Error */}
                 {isError && progress.errorMessage && (
                   <p className="text-xs text-negative">{progress.errorMessage}</p>
                 )}
@@ -473,7 +428,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 disabled={!blobName.trim() || isUploading || (access === 'premium' && (!price || parseFloat(price) <= 0))}
                 className="w-full py-2.5 rounded-lg text-sm font-semibold bg-pink text-white hover:opacity-90 active:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isUploading ? 'Uploading…' : `Upload to ${network === 'shelbynet' ? 'ShelbyNet' : 'Testnet'}`}
+                {isUploading ? 'Uploading…' : `Upload to ${network === 'testnet' ? 'Testnet' : 'ShelbyNet'}`}
               </button>
             )}
           </>
@@ -489,19 +444,19 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
             </div>
             <div className="text-center">
               <p className="text-sm font-semibold text-text-primary">Upload Successful</p>
-              <p className="text-xs text-text-muted mt-1">Your file is now on the Shelby network</p>
+              <p className="text-xs text-text-muted mt-1">Your file is now on Shelby {network === 'testnet' ? 'Testnet' : 'ShelbyNet'}</p>
             </div>
-            {txHash && explorerUrl && (
+            {txHash && (
               <div className="flex flex-col gap-2 w-full">
                 <p className="text-xs text-text-muted text-center">Transaction</p>
-                {/* Hash row: truncated hash + copy button */}
                 <div className="flex items-center gap-2 bg-surface border border-divider rounded-lg px-3 py-2">
                   <a
-                    href={explorerUrl}
+                    href={`https://explorer.aptoslabs.com/txn/${txHash}?network=${network}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 text-xs font-mono text-pink hover:underline truncate"
+                    className="flex-1 text-xs font-mono text-pink truncate hover:underline"
                     title={txHash}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {txHash.slice(0, 14)}…{txHash.slice(-10)}
                   </a>
@@ -520,19 +475,19 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                       </svg>
                     )}
                   </button>
+                  <a
+                    href={`https://explorer.aptoslabs.com/txn/${txHash}?network=${network}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-text-muted hover:text-text-primary transition-colors"
+                    title="View on Explorer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
                 </div>
-                {/* Explicit explorer link */}
-                <a
-                  href={explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1 text-xs text-pink hover:underline"
-                >
-                  View on Aptos Explorer
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
               </div>
             )}
             <div className="flex gap-2 w-full">

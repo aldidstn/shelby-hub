@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo, useEffect } from 'react'
 import { FilterBar, type Filters } from './_components/FilterBar'
 import { ReportCard } from './_components/ReportCard'
 import { PurchaseModal } from './_components/PurchaseModal'
@@ -10,8 +9,6 @@ import { MOCK_REPORTS } from './_lib/mock-data'
 import { type Report } from './_lib/types'
 
 export default function ReportsPage() {
-  const router = useRouter()
-
   const [filters, setFilters] = useState<Filters>({
     type: 'All',
     access: 'All',
@@ -19,22 +16,20 @@ export default function ReportsPage() {
   })
   const [uploadOpen, setUploadOpen]         = useState(false)
   const [buyTarget, setBuyTarget]           = useState<Report | null>(null)
-  const [purchasedIds, setPurchasedIds]     = useState<Set<string>>(() => {
-    if (typeof window === 'undefined') return new Set()
+  const [purchasedIds, setPurchasedIds]       = useState<Set<string>>(new Set())
+  const [uploadedReports, setUploadedReports] = useState<Report[]>([])
+
+  // Load persisted data after hydration to avoid server/client mismatch
+  useEffect(() => {
     try {
-      const stored = sessionStorage.getItem('shelby_purchased_ids')
-      return stored ? new Set(JSON.parse(stored) as string[]) : new Set()
-    } catch { return new Set() }
-  })
-  const [uploadedReports, setUploadedReports] = useState<Report[]>(() => {
-    if (typeof window === 'undefined') return []
+      const ids = sessionStorage.getItem('shelby_purchased_ids')
+      if (ids) setPurchasedIds(new Set(JSON.parse(ids) as string[]))
+    } catch {}
     try {
-      const stored = sessionStorage.getItem('shelby_uploaded_reports')
-      return stored ? (JSON.parse(stored) as Report[]) : []
-    } catch {
-      return []
-    }
-  })
+      const reports = sessionStorage.getItem('shelby_uploaded_reports')
+      if (reports) setUploadedReports(JSON.parse(reports) as Report[])
+    } catch {}
+  }, [])
 
   // Combine uploaded reports (prepended) with mock data
   const allReports = useMemo(() => [...uploadedReports, ...MOCK_REPORTS], [uploadedReports])
@@ -89,18 +84,6 @@ export default function ReportsPage() {
       return next
     })
     setBuyTarget(null)
-    // Navigate to the report reader
-    if (report.blobAccount && report.blobName) {
-      const params = new URLSearchParams({
-        blobAccount: report.blobAccount,
-        blobName:    report.blobName,
-        fileType:    report.fileType,
-        title:       report.title,
-      })
-      router.push(`/reports/${report.id}?${params.toString()}`)
-    } else {
-      router.push(`/reports/${report.id}`)
-    }
   }
 
   return (

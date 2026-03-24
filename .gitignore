@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Shelby gateway config (contains private key)
+shelby.config.yaml
+shelby.config.ts
