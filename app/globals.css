@@ -2,25 +2,44 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --surface: #fafafa;
+  --divider: #e5e7eb;
+
+  --brand-pink: #e56aa6;
+  --brand-pink-light: #f8d4e3;
+  --brand-brown: #4a2a12;
+
+  --text-primary: #111111;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+
+  --semantic-positive: #16a34a;
+  --semantic-negative: #dc2626;
+  --semantic-warning: #f59e0b;
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-divider: var(--divider);
+
+  --color-pink: var(--brand-pink);
+  --color-pink-light: var(--brand-pink-light);
+  --color-brown: var(--brand-brown);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-positive: var(--semantic-positive);
+  --color-negative: var(--semantic-negative);
+  --color-warning: var(--semantic-warning);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-primary);
 }
