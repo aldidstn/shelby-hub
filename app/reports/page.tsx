@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { FilterBar, type Filters } from './_components/FilterBar'
 import { ReportCard } from './_components/ReportCard'
 import { PurchaseModal } from './_components/PurchaseModal'
@@ -9,6 +10,9 @@ import { MOCK_REPORTS } from './_lib/mock-data'
 import { type Report } from './_lib/types'
 
 export default function ReportsPage() {
+  const searchParams = useSearchParams()
+  const urlQuery     = searchParams.get('q') ?? ''
+
   const [filters, setFilters] = useState<Filters>({
     type: 'All',
     access: 'All',
@@ -37,6 +41,18 @@ export default function ReportsPage() {
   const filtered = useMemo(() => {
     let result = [...allReports]
 
+    if (urlQuery.trim()) {
+      const q = urlQuery.trim().toLowerCase()
+      result = result.filter(
+        (r) =>
+          r.title.toLowerCase().includes(q) ||
+          r.description.toLowerCase().includes(q) ||
+          r.author.toLowerCase().includes(q) ||
+          r.authorAddress.toLowerCase().includes(q) ||
+          r.tags.some((tag) => tag.toLowerCase().includes(q))
+      )
+    }
+
     if (filters.access !== 'All') {
       result = result.filter((r) => r.access === filters.access)
     }
@@ -64,7 +80,7 @@ export default function ReportsPage() {
     }
 
     return result
-  }, [filters, allReports])
+  }, [filters, allReports, urlQuery])
 
   const freeCount    = allReports.filter((r) => r.access === 'free').length
   const premiumCount = allReports.filter((r) => r.access === 'premium').length
@@ -118,8 +134,14 @@ export default function ReportsPage() {
       />
 
       {/* Results count */}
-      <p className="text-xs text-text-muted -mt-2">
+      <p className="text-xs text-text-muted -mt-2 flex items-center gap-2">
         {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
+        {urlQuery.trim() && (
+          <>
+            <span>for <span className="text-text-primary font-medium">&ldquo;{urlQuery}&rdquo;</span></span>
+            <a href="/reports" className="text-pink hover:underline">Clear</a>
+          </>
+        )}
       </p>
 
       {/* Report grid */}

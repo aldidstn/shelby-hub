@@ -2,46 +2,65 @@
 
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useState } from 'react'
-
-type Network = 'shelbynet' | 'testnet'
-
-const NETWORKS: { id: Network; label: string; dotColor: string }[] = [
-  { id: 'shelbynet', label: 'ShelbyNet', dotColor: 'bg-positive' },
-  { id: 'testnet', label: 'Testnet', dotColor: 'bg-warning' },
-]
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 const NAV_LINKS = [
-  { href: '/', label: 'Main Dashboard' },
   { href: '/reports', label: 'Reports' },
   { href: '/smart-money', label: 'Smart Money' },
 ]
 
-// RPC latency is mocked until a live Alchemy/RPC endpoint is wired up
-const RPC_LABEL = 'Alchemy'
-const RPC_LATENCY_MS = 42
+const REQUIRED_NETWORK = 'testnet'
 
 export function Navbar() {
-  const pathname = usePathname()
-  const { connected, account, connect, disconnect, wallets } = useWallet()
+  const pathname     = usePathname()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const { connected, account, connect, disconnect, wallets, network, changeNetwork } = useWallet()
 
-  const [network, setNetwork] = useState<Network>('shelbynet')
-  const [networkOpen, setNetworkOpen] = useState(false)
-  const [showRpcLatency, setShowRpcLatency] = useState(false)
-  const [walletOpen, setWalletOpen] = useState(false)
+  const [walletOpen, setWalletOpen]   = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  // Keep input in sync when URL changes (e.g. browser back/forward)
+  const urlQuery = searchParams.get('q') ?? ''
+  const [query, setQuery] = useState(urlQuery)
+  useEffect(() => { setQuery(urlQuery) }, [urlQuery])
 
-  const activeNetwork = NETWORKS.find((n) => n.id === network)!
+  // Debounce: update URL 300ms after typing stops
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = query.trim()
+      const target  = trimmed
+        ? `/reports?q=${encodeURIComponent(trimmed)}`
+        : '/reports'
+
+      if (pathname === '/reports') {
+        router.replace(target)
+      } else if (trimmed) {
+        router.push(target)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query])
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = query.trim()
+    router.push(trimmed ? `/reports?q=${encodeURIComponent(trimmed)}` : '/reports')
+  }
+
+  const walletNetwork = network?.name?.toLowerCase() ?? null
+  const wrongNetwork = connected && walletNetwork !== null && walletNetwork !== REQUIRED_NETWORK
 
   function truncateAddress(addr: string) {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
 
-  function handleConnectWallet() {
-    if (connected) {
-      disconnect()
-    } else {
-      setWalletOpen(true)
+  async function handleSwitchNetwork() {
+    try {
+      await changeNetwork('testnet' as Parameters<typeof changeNetwork>[0])
+    } catch {
+      // wallet may not support programmatic switch — user must switch manually
     }
   }
 
@@ -73,75 +92,95 @@ export function Navbar() {
           </div>
 
           {/* Center — Search */}
-          <div className="flex-1 max-w-sm mx-auto hidden md:block">
+          <form onSubmit={handleSearch} className="flex-1 max-w-sm mx-auto hidden md:block">
             <input
               type="text"
-              placeholder="Search..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search reports…"
               className="w-full h-8 px-3 text-sm bg-surface border border-divider rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pink transition-colors duration-150"
             />
-          </div>
+          </form>
 
-          {/* Right — RPC + Network + Wallet */}
+          {/* Right — Network badge + Wallet */}
           <div className="flex items-center gap-2 ml-auto shrink-0">
 
-            {/* RPC Status */}
-            <div
-              className="relative hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-divider bg-surface cursor-default select-none text-xs text-text-secondary"
-              onMouseEnter={() => setShowRpcLatency(true)}
-              onMouseLeave={() => setShowRpcLatency(false)}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-positive" />
-              <span>RPC: {RPC_LABEL}</span>
-              {showRpcLatency && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-1 bg-brown text-white text-xs rounded whitespace-nowrap z-50">
-                  {RPC_LATENCY_MS}ms
-                </div>
-              )}
+            {/* Testnet badge */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-divider bg-surface text-xs text-text-secondary select-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-warning" />
+              <span>Testnet</span>
             </div>
 
-            {/* Network Selector */}
-            <div className="relative">
+            {/* Connect Wallet / Account Dropdown */}
+            {connected && account ? (
+              <div className="relative">
+                <button
+                  onClick={() => setAccountOpen((o) => !o)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-pink text-white hover:opacity-90 active:opacity-80 transition-opacity"
+                >
+                  {truncateAddress(account.address.toString())}
+                  <svg className="w-3 h-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {accountOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setAccountOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1.5 w-40 bg-background border border-divider rounded-md shadow-sm z-50 py-1">
+                      <Link
+                        href="/profile"
+                        onClick={() => setAccountOpen(false)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface hover:text-text-primary transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Profile
+                      </Link>
+                      <button
+                        onClick={() => { disconnect(); setAccountOpen(false) }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface hover:text-text-primary transition-colors text-left"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Disconnect
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
               <button
-                onClick={() => setNetworkOpen((o) => !o)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-divider bg-surface text-xs text-text-secondary hover:text-text-primary transition-colors duration-150"
+                onClick={() => setWalletOpen(true)}
+                className="px-3 py-1.5 rounded-md text-sm font-medium bg-pink text-white hover:opacity-90 active:opacity-80 transition-opacity"
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${activeNetwork.dotColor}`} />
-                <span>{activeNetwork.label}</span>
-                <svg className="w-3 h-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                Connect Wallet
               </button>
-              {networkOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-36 bg-background border border-divider rounded-md shadow-sm z-50 py-1">
-                  {NETWORKS.map((n) => (
-                    <button
-                      key={n.id}
-                      onClick={() => { setNetwork(n.id); setNetworkOpen(false) }}
-                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors duration-150 ${
-                        network === n.id
-                          ? 'text-pink bg-pink-light'
-                          : 'text-text-secondary hover:bg-surface hover:text-text-primary'
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${n.dotColor}`} />
-                      {n.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Connect Wallet */}
-            <button
-              onClick={handleConnectWallet}
-              className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150 bg-pink text-white hover:opacity-90 active:opacity-80"
-            >
-              {connected && account
-                ? truncateAddress(account.address.toString())
-                : 'Connect Wallet'}
-            </button>
+            )}
           </div>
         </div>
+
+        {/* Wrong network banner */}
+        {wrongNetwork && (
+          <div className="bg-warning/10 border-b border-warning/30 px-6 py-2 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-sm text-text-primary">
+              <svg className="w-4 h-4 text-warning shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <span>
+                Your wallet is connected to <span className="font-medium capitalize">{walletNetwork}</span>.
+                Shelby Research runs on <span className="font-medium">Testnet</span>.
+              </span>
+            </div>
+            <button
+              onClick={handleSwitchNetwork}
+              className="shrink-0 px-3 py-1 rounded-md bg-warning text-white text-xs font-medium hover:opacity-90 transition-opacity"
+            >
+              Switch to Testnet
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* Wallet Modal */}
