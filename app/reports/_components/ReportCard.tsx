@@ -5,27 +5,28 @@ import { type Report } from '../_lib/types'
 import { downloadShelbyBlob } from '../_lib/download'
 
 const FILE_TYPE_COLORS: Record<string, string> = {
-  pdf:  'text-negative bg-red-50',
+  pdf:  'text-brown bg-pink/15',
   md:   'text-text-secondary bg-surface',
-  csv:  'text-positive bg-green-50',
-  json: 'text-warning bg-yellow-50',
+  csv:  'text-brown bg-brown/10',
+  json: 'text-brown bg-pink/10',
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  Research:     'bg-blue-50 text-blue-600',
-  Analysis:     'bg-purple-50 text-purple-600',
-  'Smart Money':'bg-pink-light text-pink',
-  Document:     'bg-surface text-text-secondary',
-  Report:       'bg-brown/10 text-brown',
+  Research:  'bg-info/10 text-info',
+  Analysis:  'bg-accent/10 text-accent',
+  'Intel':   'bg-pink-light text-pink',
+  Document:  'bg-surface text-text-secondary',
+  Report:    'bg-brown/10 text-brown',
 }
 
 interface ReportCardProps {
   report: Report
   purchased?: boolean
+  walletConnected?: boolean
   onBuy: (report: Report) => void
 }
 
-export function ReportCard({ report, purchased = false, onBuy }: ReportCardProps) {
+export function ReportCard({ report, purchased = false, walletConnected = false, onBuy }: ReportCardProps) {
   const [copied, setCopied]         = useState(false)
   const [downloading, setDownloading] = useState(false)
 
@@ -49,7 +50,7 @@ export function ReportCard({ report, purchased = false, onBuy }: ReportCardProps
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4 bg-background border border-divider rounded-xl hover:border-pink/20 transition-colors duration-150">
+    <div className="report-card flex flex-col gap-3 p-4 bg-surface border border-divider rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.5)] hover:border-pink/70 hover:-translate-y-1.5 hover:shadow-[0_0_0_2px_rgba(229,106,166,0.45),0_20px_50px_-8px_rgba(229,106,166,0.35),0_8px_24px_rgba(0,0,0,0.6)] transition-all duration-200 ease-out">
 
       {/* Top row — type badge + on-chain status + file type */}
       <div className="flex items-center justify-between gap-2">
@@ -58,41 +59,41 @@ export function ReportCard({ report, purchased = false, onBuy }: ReportCardProps
             {report.type}
           </span>
           {report.onChain && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-positive/10 text-positive">
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink/10 text-pink">
               On-chain
             </span>
           )}
         </div>
-        <span className={`px-2 py-0.5 rounded text-xs font-mono font-medium uppercase ${FILE_TYPE_COLORS[report.fileType] ?? 'bg-surface text-text-secondary'}`}>
+        <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold uppercase tracking-wider ${FILE_TYPE_COLORS[report.fileType] ?? 'bg-surface text-text-secondary'}`}>
           {report.fileType}
         </span>
       </div>
 
       {/* Title + price badge */}
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-sm font-semibold text-text-primary leading-snug line-clamp-2">
+        <h3 className="text-base font-semibold text-text-primary leading-snug tracking-tight line-clamp-2">
           {report.title}
         </h3>
         {purchased ? (
-          <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-positive/10 text-positive border border-positive/20 whitespace-nowrap">
+          <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-pink-light text-pink border border-pink/25 whitespace-nowrap">
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
             Purchased
           </span>
         ) : report.access === 'premium' ? (
-          <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-pink-light text-pink border border-pink/20 whitespace-nowrap">
+          <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-pink/10 text-pink border border-pink/20 whitespace-nowrap">
             {report.price} APT
           </span>
         ) : (
-          <span className="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold bg-positive/10 text-positive border border-positive/20 whitespace-nowrap">
+          <span className="shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold bg-pink/10 text-pink border border-pink/20 whitespace-nowrap">
             Free
           </span>
         )}
       </div>
 
       {/* Description */}
-      <p className="text-xs text-text-secondary leading-relaxed line-clamp-2">
+      <p className="text-sm text-text-secondary leading-relaxed line-clamp-2">
         {report.description}
       </p>
 
@@ -101,8 +102,8 @@ export function ReportCard({ report, purchased = false, onBuy }: ReportCardProps
 
         {/* Author + date */}
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-medium text-text-primary">{report.author}</span>
-          <span className="text-xs text-text-muted">
+          <span className="text-xs font-semibold text-text-primary tracking-tight">{report.author}</span>
+          <span className="text-xs text-text-muted tabular">
             {new Date(report.createdAt).toLocaleDateString('en-US', {
               month: 'short',
               day:   'numeric',
@@ -117,11 +118,12 @@ export function ReportCard({ report, purchased = false, onBuy }: ReportCardProps
           {/* Share */}
           <button
             onClick={handleShare}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-text-muted hover:text-text-primary hover:bg-surface transition-colors duration-150"
+            className="flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-surface transition-colors duration-150"
             title={copied ? 'Link copied!' : 'Share'}
+            aria-label={copied ? 'Link copied!' : 'Share report link'}
           >
             {copied ? (
-              <svg className="w-3.5 h-3.5 text-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg key="check" className="w-3.5 h-3.5 text-pink animate-bounce-in" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             ) : (
@@ -135,8 +137,9 @@ export function ReportCard({ report, purchased = false, onBuy }: ReportCardProps
           {canDownload && (
             <button
               onClick={handleDownload}
-              disabled={downloading}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-pink text-white hover:opacity-90 active:opacity-80 transition-opacity duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={downloading || !walletConnected}
+              title={!walletConnected ? 'Connect wallet to download' : undefined}
+              className="group/dl flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold bg-pink text-white hover:opacity-90 active:scale-95 active:opacity-80 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {downloading ? (
                 <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -144,7 +147,7 @@ export function ReportCard({ report, purchased = false, onBuy }: ReportCardProps
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
                 </svg>
               ) : (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-3.5 h-3.5 transition-transform duration-150 group-hover/dl:translate-y-px" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
               )}
@@ -156,7 +159,9 @@ export function ReportCard({ report, purchased = false, onBuy }: ReportCardProps
           {report.access === 'premium' && !purchased && (
             <button
               onClick={() => onBuy(report)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-pink text-white hover:opacity-90 active:opacity-80 transition-opacity duration-150"
+              disabled={!walletConnected}
+              title={!walletConnected ? 'Connect wallet to purchase' : undefined}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold bg-pink text-white hover:opacity-90 active:scale-95 active:opacity-80 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

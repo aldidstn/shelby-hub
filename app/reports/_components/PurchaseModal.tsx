@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { type Report } from '../_lib/types'
 
@@ -24,6 +24,43 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
   const [txHash, setTxHash] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [walletPickerOpen, setWalletPickerOpen] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Reset state every time a new report is opened
+  useEffect(() => {
+    if (report) {
+      setState('confirm')
+      setErrorMsg(null)
+      setTxHash(null)
+      setWalletPickerOpen(false)
+    }
+  }, [report])
+
+  // Focus trap: lock Tab/Shift-Tab within the modal, focus first element on open
+  useEffect(() => {
+    if (!report || !dialogRef.current) return
+    const el = dialogRef.current
+    const focusable = () => el.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+    focusable()[0]?.focus()
+
+    function trap(e: KeyboardEvent) {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab') return
+      const nodes = focusable()
+      const first = nodes[0]
+      const last  = nodes[nodes.length - 1]
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus() }
+      } else {
+        if (document.activeElement === last)  { e.preventDefault(); first?.focus() }
+      }
+    }
+
+    document.addEventListener('keydown', trap)
+    return () => document.removeEventListener('keydown', trap)
+  }, [report, state, onClose])
 
   if (!report) return null
 
@@ -60,22 +97,27 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/25"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-background border border-divider rounded-2xl shadow-sm w-full max-w-sm mx-4 p-6 flex flex-col gap-5"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="purchase-modal-title"
+        className="bg-background border border-divider rounded-2xl shadow-2xl shadow-black/60 w-full max-w-sm mx-4 p-6 flex flex-col gap-5 animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-text-primary">Purchase Report</h2>
+            <h2 id="purchase-modal-title" className="text-sm font-semibold text-text-primary">Purchase Report</h2>
             <p className="text-xs text-text-muted mt-0.5">Pay with APT to unlock full access</p>
           </div>
           <button
             onClick={onClose}
-            className="text-text-muted hover:text-text-primary transition-colors shrink-0"
+            aria-label="Close"
+            className="flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-surface transition-colors shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -132,12 +174,12 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
 
         {state === 'success' && (
           <div className="flex flex-col items-center gap-3 py-4">
-            <div className="w-10 h-10 rounded-full bg-positive/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-positive/10 flex items-center justify-center animate-bounce-in">
               <svg className="w-5 h-5 text-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p className="text-sm font-semibold text-text-primary">Purchase Successful</p>
+            <p className="text-sm font-semibold text-text-primary animate-fade-up">Purchase Successful</p>
             <p className="text-xs text-text-muted text-center">You now have full access to this report</p>
             {txHash && (
               <span className="text-xs font-mono text-text-muted bg-surface px-2 py-1 rounded border border-divider">
@@ -181,7 +223,7 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
               >
                 {wallet.icon && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={wallet.icon} alt={wallet.name} className="w-5 h-5 rounded" />
+                  <img src={wallet.icon} alt="" className="w-5 h-5 rounded" />
                 )}
                 {wallet.name}
               </button>

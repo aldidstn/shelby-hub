@@ -1,4 +1,4 @@
-export type ReportType = 'Research' | 'Analysis' | 'Smart Money' | 'Document' | 'Report'
+export type ReportType = 'Research' | 'Analysis' | 'Intel' | 'Document' | 'Report'
 
 export type ReportAccess = 'free' | 'premium'
 

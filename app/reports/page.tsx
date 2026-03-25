@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { FilterBar, type Filters } from './_components/FilterBar'
 import { ReportCard } from './_components/ReportCard'
 import { PurchaseModal } from './_components/PurchaseModal'
@@ -12,16 +13,23 @@ import { type Report } from './_lib/types'
 export default function ReportsPage() {
   const searchParams = useSearchParams()
   const urlQuery     = searchParams.get('q') ?? ''
+  const { connected } = useWallet()
+
+  const PAGE_SIZE = 12
 
   const [filters, setFilters] = useState<Filters>({
     type: 'All',
     access: 'All',
     sortBy: 'latest',
   })
+  const [page, setPage] = useState(1)
   const [uploadOpen, setUploadOpen]         = useState(false)
   const [buyTarget, setBuyTarget]           = useState<Report | null>(null)
   const [purchasedIds, setPurchasedIds]       = useState<Set<string>>(new Set())
   const [uploadedReports, setUploadedReports] = useState<Report[]>([])
+
+  // Reset page when search query changes
+  useEffect(() => { setPage(1) }, [urlQuery])
 
   // Load persisted data after hydration to avoid server/client mismatch
   useEffect(() => {
@@ -65,9 +73,7 @@ export default function ReportsPage() {
       case 'latest':
         result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         break
-      case 'most-liked':
-        result.sort((a, b) => b.likes - a.likes)
-        break
+
       case 'most-downloaded':
         result.sort((a, b) => b.downloads - a.downloads)
         break
@@ -84,6 +90,15 @@ export default function ReportsPage() {
 
   const freeCount    = allReports.filter((r) => r.access === 'free').length
   const premiumCount = allReports.filter((r) => r.access === 'premium').length
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage   = Math.min(page, totalPages)
+  const paginated  = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  function handleFiltersChange(next: Filters) {
+    setFilters(next)
+    setPage(1)
+  }
 
   function handleUploadComplete(report: Report) {
     setUploadedReports((prev) => {
@@ -103,19 +118,23 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="max-w-screen-xl mx-auto px-6 py-8 flex flex-col gap-6">
+    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6">
 
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-brown">Reports Library</h1>
-          <p className="text-sm text-text-secondary mt-0.5">
+          <h1 className="text-2xl font-bold text-brown tracking-tight font-display">Reports Library</h1>
+          <p className="text-sm text-text-secondary mt-1 leading-relaxed">
             Research, analysis, and documents from the Shelby community
           </p>
         </div>
         <button
           onClick={() => setUploadOpen(true)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-pink text-white hover:opacity-90 active:opacity-80 transition-opacity"
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium active:scale-95 transition-all duration-150 ${
+            connected
+              ? 'bg-pink text-white hover:opacity-90 active:opacity-80'
+              : 'bg-pink-light text-pink border border-pink/30 hover:bg-pink/20'
+          }`}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -127,7 +146,7 @@ export default function ReportsPage() {
       {/* Filter bar */}
       <FilterBar
         filters={filters}
-        onChange={setFilters}
+        onChange={handleFiltersChange}
         totalCount={allReports.length}
         freeCount={freeCount}
         premiumCount={premiumCount}
@@ -159,16 +178,65 @@ export default function ReportsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((report) => (
-            <ReportCard
-              key={report.id}
-              report={report}
-              purchased={purchasedIds.has(report.id)}
-              onBuy={(r) => setBuyTarget(r)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="report-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {paginated.map((report) => (
+              <ReportCard
+                key={report.id}
+                report={report}
+                purchased={purchasedIds.has(report.id)}
+                walletConnected={connected}
+                onBuy={(r) => setBuyTarget(r)}
+              />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-text-muted">
+                {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage === 1}
+                  className="flex items-center justify-center w-10 h-10 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-surface active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Previous page"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`flex items-center justify-center w-10 h-10 rounded-md text-xs font-medium transition-all duration-150 active:scale-95 ${
+                      p === safePage
+                        ? 'bg-pink/10 text-pink border border-pink/20'
+                        : 'border border-divider text-text-secondary hover:text-text-primary hover:bg-surface'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage === totalPages}
+                  className="flex items-center justify-center w-10 h-10 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-surface active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Next page"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Purchase modal */}

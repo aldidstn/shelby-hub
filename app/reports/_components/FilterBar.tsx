@@ -2,7 +2,7 @@
 
 import { type ReportAccess, type ReportType } from '../_lib/types'
 
-export type SortBy = 'latest' | 'most-liked' | 'most-downloaded' | 'price-asc' | 'price-desc'
+export type SortBy = 'latest' | 'most-downloaded' | 'price-asc' | 'price-desc'
 
 export interface Filters {
   type: ReportType | 'All'
@@ -18,11 +18,10 @@ interface FilterBarProps {
   premiumCount: number
 }
 
-const TYPES: Array<ReportType | 'All'> = ['All', 'Research', 'Analysis', 'Smart Money', 'Document', 'Report']
+const TYPES: Array<ReportType | 'All'> = ['All', 'Research', 'Analysis', 'Intel', 'Document', 'Report']
 
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'latest', label: 'Latest' },
-  { value: 'most-liked', label: 'Most Liked' },
   { value: 'most-downloaded', label: 'Most Downloaded' },
   { value: 'price-asc', label: 'Price: Low → High' },
   { value: 'price-desc', label: 'Price: High → Low' },
@@ -48,9 +47,10 @@ export function FilterBar({ filters, onChange, totalCount, freeCount, premiumCou
           <button
             key={tab.value}
             onClick={() => set('access', tab.value)}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors duration-150 ${
+            aria-pressed={filters.access === tab.value}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors duration-150 ${
               filters.access === tab.value
-                ? 'bg-background text-text-primary shadow-sm border border-divider'
+                ? 'bg-pink/10 text-pink border border-pink/20'
                 : 'text-text-secondary hover:text-text-primary'
             }`}
           >
@@ -60,16 +60,17 @@ export function FilterBar({ filters, onChange, totalCount, freeCount, premiumCou
       </div>
 
       {/* Right — type chips + sort */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Type filter */}
-        <div className="flex flex-wrap gap-1">
+      <div className="flex items-center gap-2 min-w-0">
+        {/* Type filter — horizontal scroll on mobile */}
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-0.5 -mb-0.5 min-w-0 flex-1 sm:flex-none sm:flex-wrap">
           {TYPES.map((t) => (
             <button
               key={t}
               onClick={() => set('type', t)}
-              className={`px-2.5 py-1 rounded-full text-xs transition-colors duration-150 ${
+              aria-pressed={filters.type === t}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs transition-colors duration-150 ${
                 filters.type === t
-                  ? 'bg-pink text-white'
+                  ? 'bg-pink/10 text-pink border border-pink/20'
                   : 'bg-surface border border-divider text-text-secondary hover:text-text-primary hover:border-pink'
               }`}
             >
@@ -79,13 +80,13 @@ export function FilterBar({ filters, onChange, totalCount, freeCount, premiumCou
         </div>
 
         {/* Divider */}
-        <div className="hidden sm:block w-px h-5 bg-divider" />
+        <div className="hidden sm:block shrink-0 w-px h-5 bg-divider" />
 
         {/* Sort */}
         <select
           value={filters.sortBy}
           onChange={(e) => set('sortBy', e.target.value as SortBy)}
-          className="h-7 px-2 text-xs bg-surface border border-divider rounded-md text-text-secondary focus:outline-none focus:border-pink cursor-pointer"
+          className="shrink-0 h-8 px-2 text-xs bg-surface border border-divider rounded-md text-text-secondary focus:outline-none focus:border-pink cursor-pointer"
         >
           {SORT_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>

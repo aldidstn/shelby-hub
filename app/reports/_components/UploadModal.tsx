@@ -1,23 +1,23 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { uploadToShelby, type UploadStep, type UploadProgress } from '../_lib/upload'
 import type { Report } from '../_lib/types'
 
 // ─── Accepted file types ─────────────────────────────────────────────────────
-const ACCEPTED_TYPES: Record<string, { label: string; icon: string }> = {
-  'application/pdf':  { label: 'PDF',      icon: '📄' },
-  'text/markdown':    { label: 'Markdown', icon: '📝' },
-  'text/plain':       { label: 'Text',     icon: '📝' },
-  'application/json': { label: 'JSON',     icon: '🗂️' },
-  'text/csv':         { label: 'CSV',      icon: '📊' },
-  'video/mp4':        { label: 'MP4',      icon: '🎬' },
-  'video/webm':       { label: 'WebM',     icon: '🎬' },
-  'video/quicktime':  { label: 'MOV',      icon: '🎬' },
-  'audio/mpeg':       { label: 'MP3',      icon: '🎵' },
-  'audio/wav':        { label: 'WAV',      icon: '🎵' },
-  'audio/ogg':        { label: 'OGG',      icon: '🎵' },
+const ACCEPTED_TYPES: Record<string, { label: string }> = {
+  'application/pdf':  { label: 'PDF'      },
+  'text/markdown':    { label: 'Markdown' },
+  'text/plain':       { label: 'Text'     },
+  'application/json': { label: 'JSON'     },
+  'text/csv':         { label: 'CSV'      },
+  'video/mp4':        { label: 'MP4'      },
+  'video/webm':       { label: 'WebM'     },
+  'video/quicktime':  { label: 'MOV'      },
+  'audio/mpeg':       { label: 'MP3'      },
+  'audio/wav':        { label: 'WAV'      },
+  'audio/ogg':        { label: 'OGG'      },
 }
 
 const ACCEPT_ATTR = Object.keys(ACCEPTED_TYPES).join(',')
@@ -65,6 +65,44 @@ function slugify(name: string) {
   return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9.\-/]/g, '')
 }
 
+// ─── File type icon ───────────────────────────────────────────────────────────
+function FileTypeIcon({ mimeType }: { mimeType: string }) {
+  if (mimeType.startsWith('video/')) {
+    return (
+      <svg className="w-10 h-10 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+      </svg>
+    )
+  }
+  if (mimeType.startsWith('audio/')) {
+    return (
+      <svg className="w-10 h-10 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
+      </svg>
+    )
+  }
+  if (mimeType === 'text/csv') {
+    return (
+      <svg className="w-10 h-10 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0118 18.375M20.625 4.5H3.375m17.25 0c.621 0 1.125.504 1.125 1.125M20.625 4.5h-1.5C18.504 4.5 18 5.004 18 5.625m3.75 0v1.5c0 .621-.504 1.125-1.125 1.125M3.375 4.5c-.621 0-1.125.504-1.125 1.125M3.375 4.5h1.5C5.496 4.5 6 5.004 6 5.625m-3.75 0v1.5c0 .621.504 1.125 1.125 1.125m0 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m1.5-3.75C5.496 8.25 6 8.754 6 9.375v1.5m0-5.25v5.25m0-5.25C6 5.004 6.504 4.5 7.125 4.5h9.75c.621 0 1.125.504 1.125 1.125m1.125 2.625h1.5m-1.5 0A1.125 1.125 0 0118 9.375v1.5m1.5-3.75C19.496 8.25 20 8.754 20 9.375v1.5m0 0v5.25m0-5.25C20 8.754 19.496 8.25 18.875 8.25h-1.5m1.625 8.25-1.5-.75m0 0v-3m0 3c0 .621-.504 1.125-1.125 1.125h-7.5A1.125 1.125 0 018.25 18v-3m9.375 0H8.25m9.375 0v3M8.25 15v3" />
+      </svg>
+    )
+  }
+  if (mimeType === 'application/json') {
+    return (
+      <svg className="w-10 h-10 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+      </svg>
+    )
+  }
+  // PDF, Markdown, Text, and fallback
+  return (
+    <svg className="w-10 h-10 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+  )
+}
+
 interface UploadModalProps {
   onClose: () => void
   onUploadComplete: (report: Report) => void
@@ -84,7 +122,34 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   const [txHash, setTxHash]     = useState<string | null>(null)
   const [copied, setCopied]     = useState(false)
 
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Focus trap
+  useEffect(() => {
+    if (!dialogRef.current) return
+    const el = dialogRef.current
+    const focusable = () => el.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+    focusable()[0]?.focus()
+
+    function trap(e: KeyboardEvent) {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab') return
+      const nodes = focusable()
+      const first = nodes[0]
+      const last  = nodes[nodes.length - 1]
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus() }
+      } else {
+        if (document.activeElement === last)  { e.preventDefault(); first?.focus() }
+      }
+    }
+
+    document.addEventListener('keydown', trap)
+    return () => document.removeEventListener('keydown', trap)
+  }, [onClose, file, progress])
 
   function handleFile(f: File) {
     setFile(f)
@@ -106,7 +171,8 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     setDragging(false)
     const f = e.dataTransfer.files?.[0]
     if (f) handleFile(f)
-  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account])
 
   async function handleUpload() {
     if (!file || !connected || !account) return
@@ -172,20 +238,28 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
-        className="bg-background border border-divider rounded-2xl shadow-sm w-full max-w-md flex flex-col gap-5 p-6 max-h-[90vh] overflow-y-auto"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="upload-modal-title"
+        className="bg-background border border-divider rounded-2xl shadow-2xl shadow-black/60 w-full max-w-md flex flex-col gap-5 p-6 max-h-[90vh] overflow-y-auto animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-text-primary">Upload File</h2>
+            <h2 id="upload-modal-title" className="text-sm font-semibold text-text-primary">Upload File</h2>
             <p className="text-xs text-text-muted mt-0.5">Files, videos, and audio are supported</p>
           </div>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-surface transition-colors"
+          >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -195,11 +269,17 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         {/* Drop zone */}
         {!isDone && (
           <div
+            role="button"
+            tabIndex={0}
+            aria-label="Drop file here or click to browse"
             onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
-            className={`relative flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors duration-150 ${
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click() }
+            }}
+            className={`relative flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               dragging
                 ? 'border-pink bg-pink-light'
                 : file
@@ -207,10 +287,10 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 : 'border-divider hover:border-pink/50 hover:bg-surface'
             }`}
           >
-            <input ref={inputRef} type="file" accept={ACCEPT_ATTR} className="sr-only" onChange={handleInputChange} />
+            <input ref={inputRef} type="file" accept={ACCEPT_ATTR} className="sr-only" onChange={handleInputChange} tabIndex={-1} />
             {file ? (
               <>
-                <span className="text-3xl">{fileInfo?.icon ?? '📁'}</span>
+                <FileTypeIcon mimeType={file.type} />
                 <div className="text-center">
                   <p className="text-sm font-medium text-text-primary line-clamp-1">{file.name}</p>
                   <p className="text-xs text-text-muted mt-0.5">{fileInfo?.label ?? 'File'} · {formatBytes(file.size)}</p>
@@ -248,8 +328,9 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
           <>
             {/* Blob name */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text-primary">Blob name</label>
+              <label htmlFor="blob-name-input" className="text-xs font-medium text-text-primary">Blob name</label>
               <input
+                id="blob-name-input"
                 type="text"
                 value={blobName}
                 onChange={(e) => setBlobName(e.target.value)}
@@ -262,13 +343,14 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
 
             {/* Expiration */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text-primary">Expiration</label>
-              <div className="flex flex-wrap gap-1.5">
+              <span className="text-xs font-medium text-text-primary">Expiration</span>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Expiration preset">
                 {EXPIRY_PRESETS.map((p) => (
                   <button
                     key={p.ms}
                     onClick={() => setExpiryMs(p.ms)}
                     disabled={isUploading}
+                    aria-pressed={expiryMs === p.ms}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors duration-150 ${
                       expiryMs === p.ms
                         ? 'bg-pink text-white border-pink'
@@ -286,13 +368,14 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
 
             {/* Network */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text-primary">Network</label>
-              <div className="flex gap-1.5">
+              <span className="text-xs font-medium text-text-primary">Network</span>
+              <div className="flex gap-1.5" role="group" aria-label="Network selection">
                 {(['testnet', 'shelbynet'] as const).map((n) => (
                   <button
                     key={n}
                     onClick={() => setNetwork(n)}
                     disabled={isUploading}
+                    aria-pressed={network === n}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors duration-150 ${
                       network === n
                         ? 'bg-pink text-white border-pink'
@@ -308,11 +391,12 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
 
             {/* Access / Pricing */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text-primary">Access</label>
-              <div className="flex gap-1.5">
+              <span className="text-xs font-medium text-text-primary">Access</span>
+              <div className="flex gap-1.5" role="group" aria-label="Access level">
                 <button
                   onClick={() => { setAccess('free'); setPrice('') }}
                   disabled={isUploading}
+                  aria-pressed={access === 'free'}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors duration-150 ${
                     access === 'free'
                       ? 'bg-positive text-white border-positive'
@@ -324,6 +408,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 <button
                   onClick={() => setAccess('premium')}
                   disabled={isUploading}
+                  aria-pressed={access === 'premium'}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors duration-150 ${
                     access === 'premium'
                       ? 'bg-pink text-white border-pink'
@@ -336,7 +421,9 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
               {access === 'premium' && (
                 <div className="flex items-center gap-2 mt-1">
                   <div className="relative flex-1">
+                    <label htmlFor="price-input" className="sr-only">Price in APT</label>
                     <input
+                      id="price-input"
                       type="number" min="0.01" step="0.01"
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
@@ -344,7 +431,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                       disabled={isUploading}
                       className="w-full h-9 pl-3 pr-12 text-sm bg-surface border border-divider rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pink transition-colors disabled:opacity-50"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-text-muted">APT</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-text-muted" aria-hidden="true">APT</span>
                   </div>
                   <p className="text-xs text-text-muted whitespace-nowrap">price to unlock</p>
                 </div>
@@ -356,7 +443,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
 
             {/* Progress */}
             {progress && (
-              <div className="flex flex-col gap-3 p-4 bg-surface rounded-xl border border-divider">
+              <div className="flex flex-col gap-3 p-4 bg-surface rounded-xl border border-divider" aria-live="polite" aria-atomic="true">
                 <div className="flex items-center gap-1">
                   {UPLOAD_STEPS.map((s, i) => {
                     const currentIdx = UPLOAD_STEPS.indexOf(progress.step)
@@ -390,7 +477,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 </p>
                 {progress.step === 'uploading' && progress.totalBytes > 0 && (
                   <div className="flex flex-col gap-1">
-                    <div className="h-1.5 bg-divider rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-divider rounded-full overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((progress.uploadedBytes / progress.totalBytes) * 100)}>
                       <div
                         className="h-full bg-pink rounded-full transition-all duration-300"
                         style={{ width: `${Math.round((progress.uploadedBytes / progress.totalBytes) * 100)}%` }}
@@ -417,7 +504,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                     onClick={() => connect(w.name)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-divider hover:bg-surface text-sm text-text-primary transition-colors"
                   >
-                    {w.icon && <img src={w.icon} alt={w.name} className="w-5 h-5 rounded" />}
+                    {w.icon && <img src={w.icon} alt="" className="w-5 h-5 rounded" />}
                     {w.name}
                   </button>
                 ))}
@@ -437,12 +524,12 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         {/* Success state */}
         {isDone && (
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="w-12 h-12 rounded-full bg-positive/10 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-positive/10 flex items-center justify-center animate-bounce-in">
               <svg className="w-6 h-6 text-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <div className="text-center">
+            <div className="text-center animate-fade-up">
               <p className="text-sm font-semibold text-text-primary">Upload Successful</p>
               <p className="text-xs text-text-muted mt-1">Your file is now on Shelby {network === 'testnet' ? 'Testnet' : 'ShelbyNet'}</p>
             </div>
@@ -463,7 +550,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                   <button
                     onClick={handleCopyHash}
                     className="shrink-0 text-text-muted hover:text-text-primary transition-colors"
-                    title={copied ? 'Copied!' : 'Copy hash'}
+                    aria-label={copied ? 'Copied!' : 'Copy transaction hash'}
                   >
                     {copied ? (
                       <svg className="w-4 h-4 text-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -480,7 +567,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shrink-0 text-text-muted hover:text-text-primary transition-colors"
-                    title="View on Explorer"
+                    aria-label="View on Aptos Explorer"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
