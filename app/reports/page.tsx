@@ -20,7 +20,8 @@ export default function ReportsPage() {
 function ReportsPageInner() {
   const searchParams = useSearchParams()
   const urlQuery     = searchParams.get('q') ?? ''
-  const { connected } = useWallet()
+  const { connected, account } = useWallet()
+  const walletAddress = account?.address?.toString() ?? null
 
   const PAGE_SIZE = 12
 
@@ -41,13 +42,16 @@ function ReportsPageInner() {
   // Optimistic: reports just uploaded this session (visible instantly)
   const [localReports, setLocalReports] = useState<Report[]>([])
 
-  // Persist purchased IDs across page reloads (session-scoped)
+  // Load purchased IDs for the current wallet (wallet-scoped)
   useEffect(() => {
+    if (!walletAddress) { setPurchasedIds(new Set()); return }
     try {
-      const ids = sessionStorage.getItem('shelby_purchased_ids')
+      const key = `shelby_purchased_ids:${walletAddress}`
+      const ids = sessionStorage.getItem(key)
       if (ids) setPurchasedIds(new Set(JSON.parse(ids) as string[]))
+      else setPurchasedIds(new Set())
     } catch {}
-  }, [])
+  }, [walletAddress])
 
   // Fetch from on-chain registry on mount
   const loadRegistry = useCallback(async () => {
@@ -139,7 +143,11 @@ function ReportsPageInner() {
   function handlePurchaseComplete(report: Report) {
     setPurchasedIds((prev) => {
       const next = new Set(prev).add(report.id)
-      try { sessionStorage.setItem('shelby_purchased_ids', JSON.stringify([...next])) } catch {}
+      try {
+        if (walletAddress) {
+          sessionStorage.setItem(`shelby_purchased_ids:${walletAddress}`, JSON.stringify([...next]))
+        }
+      } catch {}
       return next
     })
     setBuyTarget(null)
