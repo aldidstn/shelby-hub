@@ -3,7 +3,7 @@
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { truncateAddress } from '@/app/lib/format'
 
 const NAV_LINKS = [
@@ -14,6 +14,10 @@ const NAV_LINKS = [
 const REQUIRED_NETWORK = 'testnet'
 
 export function Navbar() {
+  return <Suspense><NavbarInner /></Suspense>
+}
+
+function NavbarInner() {
   const pathname     = usePathname()
   const router       = useRouter()
   const searchParams = useSearchParams()

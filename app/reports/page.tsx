@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { FilterBar, type Filters } from './_components/FilterBar'
@@ -14,6 +14,10 @@ import { type Report } from './_lib/types'
 const HAS_REGISTRY = !!process.env.NEXT_PUBLIC_REGISTRY_ADDRESS
 
 export default function ReportsPage() {
+  return <Suspense><ReportsPageInner /></Suspense>
+}
+
+function ReportsPageInner() {
   const searchParams = useSearchParams()
   const urlQuery     = searchParams.get('q') ?? ''
   const { connected } = useWallet()
