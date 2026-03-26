@@ -15,6 +15,7 @@ export type UploadStep =
   | 'generating'
   | 'registering'
   | 'uploading'
+  | 'publishing'   // registering metadata in the on-chain report registry
   | 'done'
   | 'error'
 

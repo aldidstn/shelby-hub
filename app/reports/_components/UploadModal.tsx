@@ -3,9 +3,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { uploadToShelby, type UploadStep, type UploadProgress } from '../_lib/upload'
+import { registerReportOnChain } from '@/app/lib/registry'
 import type { Report } from '../_lib/types'
 
-// ─── Accepted file types ─────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const ACCEPTED_TYPES: Record<string, { label: string }> = {
   'application/pdf':  { label: 'PDF'      },
   'text/markdown':    { label: 'Markdown' },
@@ -29,17 +31,22 @@ const EXPIRY_PRESETS = [
   { label: '1 year',  ms: 365 * 24 * 60 * 60 * 1000 },
 ]
 
+const REPORT_TYPES: Report['type'][] = ['Research', 'Analysis', 'Intel', 'Document', 'Report']
+
 const STEP_LABELS: Record<UploadStep, string> = {
   idle:        'Waiting',
   reading:     'Reading file…',
   generating:  'Generating commitments…',
   registering: 'Registering on-chain…',
   uploading:   'Uploading to Shelby…',
+  publishing:  'Publishing to registry…',
   done:        'Upload complete',
   error:       'Upload failed',
 }
 
-const UPLOAD_STEPS: UploadStep[] = ['reading', 'generating', 'registering', 'uploading', 'done']
+const UPLOAD_STEPS: UploadStep[] = [
+  'reading', 'generating', 'registering', 'uploading', 'publishing', 'done',
+]
 
 const MIME_TO_FILE_TYPE: Record<string, Report['fileType']> = {
   'application/pdf':  'pdf',
@@ -95,13 +102,14 @@ function FileTypeIcon({ mimeType }: { mimeType: string }) {
       </svg>
     )
   }
-  // PDF, Markdown, Text, and fallback
   return (
     <svg className="w-10 h-10 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
     </svg>
   )
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 interface UploadModalProps {
   onClose: () => void
@@ -111,13 +119,24 @@ interface UploadModalProps {
 export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   const { connected, account, wallets, connect, signAndSubmitTransaction } = useWallet()
 
+  // File
   const [file, setFile]         = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
+
+  // Metadata fields
+  const [title, setTitle]           = useState('')
+  const [description, setDescription] = useState('')
+  const [reportType, setReportType] = useState<Report['type']>('Research')
+  const [tags, setTags]             = useState('')
+
+  // Upload options
   const [blobName, setBlobName] = useState('')
   const [expiryMs, setExpiryMs] = useState(EXPIRY_PRESETS[1].ms)
   const [network, setNetwork]   = useState<'shelbynet' | 'testnet'>('testnet')
   const [access, setAccess]     = useState<'free' | 'premium'>('free')
   const [price, setPrice]       = useState('')
+
+  // State
   const [progress, setProgress] = useState<UploadProgress | null>(null)
   const [txHash, setTxHash]     = useState<string | null>(null)
   const [copied, setCopied]     = useState(false)
@@ -157,9 +176,12 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     setTxHash(null)
     setAccess('free')
     setPrice('')
-    const ext = f.name.split('.').pop() ?? ''
+    const ext   = f.name.split('.').pop() ?? ''
     const owner = account?.address?.toString().slice(0, 8) ?? 'me'
-    setBlobName(`${owner}/${slugify(f.name.replace(`.${ext}`, ''))}.${ext}`)
+    const base  = f.name.replace(`.${ext}`, '')
+    setBlobName(`${owner}/${slugify(base)}.${ext}`)
+    // Pre-fill title from filename
+    if (!title) setTitle(base.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -172,7 +194,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     const f = e.dataTransfer.files?.[0]
     if (f) handleFile(f)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account])
+  }, [account, title])
 
   async function handleUpload() {
     if (!file || !connected || !account) return
@@ -180,6 +202,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     setProgress({ step: 'reading', uploadedBytes: 0, totalBytes: file.size })
 
     try {
+      // ── Step 1: Upload file to Shelby ────────────────────────────────────
       const result = await uploadToShelby({
         file,
         blobName,
@@ -191,28 +214,51 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         onProgress: setProgress,
       })
 
-      setTxHash(result.id)
-      setProgress((p) => p ? { ...p, step: 'done' } : null)
+      // ── Step 2: Register metadata in the on-chain registry ───────────────
+      setProgress({ step: 'publishing', uploadedBytes: 0, totalBytes: 0 })
 
-      const fileType   = MIME_TO_FILE_TYPE[file.type] ?? 'pdf'
-      const titleNoExt = file.name.replace(/\.[^.]+$/, '')
-      const parsedPrice = access === 'premium' ? parseFloat(price) : undefined
+      const parsedPrice  = access === 'premium' ? parseFloat(price) : 0
+      const priceOctas   = isNaN(parsedPrice) || parsedPrice <= 0 ? 0 : Math.round(parsedPrice * 1e8)
+      const parsedTags   = tags.split(',').map(t => t.trim()).filter(Boolean)
+      const displayTitle = title.trim() || file.name.replace(/\.[^.]+$/, '')
+      const authorName   = account.address.toString().slice(0, 10) + '…'
+      const fileType     = MIME_TO_FILE_TYPE[file.type] ?? 'pdf'
+
+      await registerReportOnChain({
+        blobAccount:   account.address.toString(),
+        blobName:      result.blobName,
+        network,
+        title:         displayTitle,
+        description:   description.trim(),
+        reportType,
+        access,
+        price:         priceOctas,
+        fileType,
+        tags:          parsedTags,
+        author:        authorName,
+        signAndSubmit: (payload) =>
+          signAndSubmitTransaction(payload as Parameters<typeof signAndSubmitTransaction>[0]),
+      })
+
+      // ── Done ─────────────────────────────────────────────────────────────
+      setTxHash(result.id)
+      setProgress({ step: 'done', uploadedBytes: file.size, totalBytes: file.size })
 
       onUploadComplete({
         id:            result.id,
-        title:         titleNoExt,
-        description:   `Uploaded to Shelby ${network === 'testnet' ? 'Testnet' : 'ShelbyNet'}`,
-        type:          file.type.startsWith('video/') || file.type.startsWith('audio/') ? 'Report' : 'Document',
+        title:         displayTitle,
+        description:   description.trim(),
+        type:          reportType,
         access,
-        price:         parsedPrice && !isNaN(parsedPrice) ? parsedPrice : undefined,
+        price:         access === 'premium' && !isNaN(parsedPrice) && parsedPrice > 0 ? parsedPrice : undefined,
         likes:         0,
         downloads:     0,
-        author:        account.address.toString().slice(0, 10) + '…',
+        author:        authorName,
         authorAddress: account.address.toString(),
         createdAt:     new Date().toISOString(),
         onChain:       true,
         fileType,
-        tags:          [],
+        tags:          parsedTags,
         blobAccount:   result.blobAccount,
         blobName:      result.blobName,
         network,
@@ -236,6 +282,13 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     })
   }
 
+  const canSubmit =
+    !!file &&
+    blobName.trim().length > 0 &&
+    title.trim().length > 0 &&
+    !isUploading &&
+    !(access === 'premium' && (!price || parseFloat(price) <= 0))
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
@@ -253,7 +306,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         <div className="flex items-center justify-between">
           <div>
             <h2 id="upload-modal-title" className="text-sm font-semibold text-text-primary">Upload File</h2>
-            <p className="text-xs text-text-muted mt-0.5">Files, videos, and audio are supported</p>
+            <p className="text-xs text-text-muted mt-0.5">Published on Shelby · indexed on-chain</p>
           </div>
           <button
             onClick={onClose}
@@ -296,7 +349,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                   <p className="text-xs text-text-muted mt-0.5">{fileInfo?.label ?? 'File'} · {formatBytes(file.size)}</p>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setFile(null); setBlobName('') }}
+                  onClick={(e) => { e.stopPropagation(); setFile(null); setBlobName(''); setTitle('') }}
                   className="text-xs text-text-muted hover:text-negative transition-colors"
                 >
                   Remove
@@ -323,9 +376,78 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
           </div>
         )}
 
-        {/* Upload form */}
+        {/* Form fields */}
         {file && !isDone && (
           <>
+            {/* Title */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="report-title" className="text-xs font-medium text-text-primary">
+                Title <span className="text-negative">*</span>
+              </label>
+              <input
+                id="report-title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Report title"
+                maxLength={120}
+                disabled={isUploading}
+                className="h-9 px-3 text-sm bg-surface border border-divider rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pink transition-colors disabled:opacity-50"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="report-description" className="text-xs font-medium text-text-primary">Description</label>
+              <textarea
+                id="report-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief summary of this report…"
+                rows={2}
+                maxLength={500}
+                disabled={isUploading}
+                className="px-3 py-2 text-sm bg-surface border border-divider rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pink transition-colors resize-none disabled:opacity-50"
+              />
+            </div>
+
+            {/* Type */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-text-primary">Type</span>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Report type">
+                {REPORT_TYPES.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setReportType(t)}
+                    disabled={isUploading}
+                    aria-pressed={reportType === t}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors duration-150 ${
+                      reportType === t
+                        ? 'bg-pink text-white border-pink'
+                        : 'bg-surface text-text-secondary border-divider hover:border-pink hover:text-pink'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="report-tags" className="text-xs font-medium text-text-primary">Tags</label>
+              <input
+                id="report-tags"
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="DeFi, Aptos, Research"
+                disabled={isUploading}
+                className="h-9 px-3 text-sm bg-surface border border-divider rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pink transition-colors disabled:opacity-50"
+              />
+              <p className="text-xs text-text-muted">Comma-separated</p>
+            </div>
+
             {/* Blob name */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="blob-name-input" className="text-xs font-medium text-text-primary">Blob name</label>
@@ -338,7 +460,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 className="h-9 px-3 text-sm bg-surface border border-divider rounded-lg text-text-primary font-mono placeholder:text-text-muted focus:outline-none focus:border-pink transition-colors"
                 disabled={isUploading}
               />
-              <p className="text-xs text-text-muted">Used as the path on the Shelby network</p>
+              <p className="text-xs text-text-muted">Path on the Shelby network</p>
             </div>
 
             {/* Expiration */}
@@ -446,7 +568,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
               <div className="flex flex-col gap-3 p-4 bg-surface rounded-xl border border-divider" aria-live="polite" aria-atomic="true">
                 <div className="flex items-center gap-1">
                   {UPLOAD_STEPS.map((s, i) => {
-                    const currentIdx = UPLOAD_STEPS.indexOf(progress.step)
+                    const currentIdx = UPLOAD_STEPS.indexOf(progress.step as UploadStep)
                     const done    = i < currentIdx || progress.step === 'done'
                     const active  = s === progress.step
                     const upcoming = i > currentIdx && progress.step !== 'done'
@@ -494,7 +616,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
               </div>
             )}
 
-            {/* Wallet gate */}
+            {/* Wallet gate / submit */}
             {!connected ? (
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-text-muted text-center">Connect your wallet to upload</p>
@@ -512,7 +634,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
             ) : (
               <button
                 onClick={handleUpload}
-                disabled={!blobName.trim() || isUploading || (access === 'premium' && (!price || parseFloat(price) <= 0))}
+                disabled={!canSubmit}
                 className="w-full py-2.5 rounded-lg text-sm font-semibold bg-pink text-white hover:opacity-90 active:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUploading ? 'Uploading…' : `Upload to ${network === 'testnet' ? 'Testnet' : 'ShelbyNet'}`}
@@ -531,7 +653,9 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
             </div>
             <div className="text-center animate-fade-up">
               <p className="text-sm font-semibold text-text-primary">Upload Successful</p>
-              <p className="text-xs text-text-muted mt-1">Your file is now on Shelby {network === 'testnet' ? 'Testnet' : 'ShelbyNet'}</p>
+              <p className="text-xs text-text-muted mt-1">
+                Your file is live on Shelby {network === 'testnet' ? 'Testnet' : 'ShelbyNet'} and indexed on-chain
+              </p>
             </div>
             {txHash && (
               <div className="flex flex-col gap-2 w-full">
@@ -579,7 +703,11 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
             )}
             <div className="flex gap-2 w-full">
               <button
-                onClick={() => { setFile(null); setBlobName(''); setProgress(null); setTxHash(null); setAccess('free'); setPrice('') }}
+                onClick={() => {
+                  setFile(null); setBlobName(''); setTitle(''); setDescription('')
+                  setTags(''); setReportType('Research'); setProgress(null)
+                  setTxHash(null); setAccess('free'); setPrice('')
+                }}
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-divider text-text-secondary hover:bg-surface transition-colors"
               >
                 Upload another
