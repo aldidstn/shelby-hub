@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { REPORT_CONTENT, type ContentBlock } from '../_lib/content'
-import { MOCK_REPORTS } from '../_lib/mock-data'
+import { REPORT_CONTENT, STATIC_REPORTS, type ContentBlock } from '../_lib/content'
 import { ReaderActions } from '../_components/ReaderActions'
 import { BlobReaderPage } from '../_components/BlobReaderPage'
 import type { Report } from '../_lib/types'
@@ -16,7 +15,7 @@ export default async function ReportReaderPage({ params, searchParams }: Props) 
   const sp = await searchParams
 
   const content = REPORT_CONTENT[id]
-  const report = MOCK_REPORTS.find((r) => r.id === id)
+  const report = STATIC_REPORTS.find((r) => r.id === id)
 
   // Uploaded / blob-backed report — no static content, but blob info passed as params
   if (!content || !report) {
@@ -41,7 +40,7 @@ export default async function ReportReaderPage({ params, searchParams }: Props) 
     notFound()
   }
 
-  const readableReports = MOCK_REPORTS.filter((r) => Boolean(REPORT_CONTENT[r.id]))
+  const readableReports = STATIC_REPORTS.filter((r) => Boolean(REPORT_CONTENT[r.id]))
 
   return (
     <div className="max-w-screen-xl mx-auto px-6 py-8 flex gap-8">

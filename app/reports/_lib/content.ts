@@ -1,3 +1,5 @@
+import { type Report } from './types'
+
 export type BlockType = 'heading' | 'subheading' | 'paragraph' | 'quote' | 'divider'
 
 export interface ContentBlock {
@@ -11,6 +13,29 @@ export interface ReportContent {
   subtitle: string
   blocks: ContentBlock[]
 }
+
+// Static (on-chain) reports with full metadata.
+// Add real published reports here — never mock data.
+export const STATIC_REPORTS: Report[] = [
+  {
+    id: 'design-is-the-exploit',
+    title: 'Design is the Exploit',
+    description:
+      "Why Web3's biggest systemic risk isn't a zero-day — it's the interface. An argument for why current Web3 design is the single biggest systemic risk to mass adoption.",
+    type: 'Research',
+    access: 'free',
+    likes: 847,
+    downloads: 3200,
+    author: 'aldidstn',
+    authorAddress: '0xaldi000000000000',
+    createdAt: '2026-03-24T08:00:00Z',
+    onChain: true,
+    fileType: 'md',
+    tags: ['UX', 'Security', 'Design', 'Web3', 'Blind Signing'],
+    blobAccount: 'aldidstn',
+    blobName: 'design-is-the-exploit.md',
+  },
+]
 
 export const REPORT_CONTENT: Record<string, ReportContent> = {
   'design-is-the-exploit': {
