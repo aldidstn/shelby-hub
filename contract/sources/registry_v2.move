@@ -31,6 +31,8 @@ module shelby_registry::registry_v2 {
     const MAX_TAGS: u64 = 12;
     const MAX_TAG_BYTES: u64 = 40;
     const MAX_CIPHER_HASH_BYTES: u64 = 128;
+    const MAX_ACE_ORIGIN_BYTES: u64 = 256;
+    const DEFAULT_ACE_ORIGIN: vector<u8> = b"https://shelby-hub-iota.vercel.app";
 
     struct PurchaseKey has copy, drop, store {
         buyer: address,
@@ -59,6 +61,7 @@ module shelby_registry::registry_v2 {
     struct Registry has key {
         reports: Table<String, ReportEntry>,
         purchases: Table<PurchaseKey, u64>,
+        ace_origin: String,
     }
 
     #[event]
@@ -108,12 +111,33 @@ module shelby_registry::registry_v2 {
         purchased_at: u64,
     }
 
+    #[event]
+    struct AceOriginUpdated has drop, store {
+        registry: address,
+        origin: String,
+        updated_at: u64,
+    }
+
     public entry fun initialize(admin: &signer) {
         let address = signer::address_of(admin);
         assert!(!exists<Registry>(address), E_ALREADY_INITIALIZED);
         move_to(admin, Registry {
             reports: table::new(),
             purchases: table::new(),
+            ace_origin: string::utf8(DEFAULT_ACE_ORIGIN),
+        });
+    }
+
+    public entry fun update_ace_origin(admin: &signer, origin: String) acquires Registry {
+        let registry_addr = signer::address_of(admin);
+        assert!(exists<Registry>(registry_addr), E_NOT_INITIALIZED);
+        assert_length(&origin, 1, MAX_ACE_ORIGIN_BYTES);
+        let registry = borrow_global_mut<Registry>(registry_addr);
+        registry.ace_origin = copy origin;
+        event::emit(AceOriginUpdated {
+            registry: registry_addr,
+            origin,
+            updated_at: timestamp::now_microseconds(),
         });
     }
 
@@ -241,6 +265,21 @@ module shelby_registry::registry_v2 {
         if (!exists<Registry>(registry_addr)) return false;
         let registry = borrow_global<Registry>(registry_addr);
         table::contains(&registry.purchases, PurchaseKey { buyer, report_id })
+    }
+
+    #[view]
+    public fun on_ace_decryption_request(label: vector<u8>, account: address, origin: String): bool acquires Registry {
+        if (!exists<Registry>(@shelby_registry)) return false;
+        let registry = borrow_global<Registry>(@shelby_registry);
+        if (string::bytes(&registry.ace_origin) != string::bytes(&origin)) return false;
+
+        let report_id = string::utf8(label);
+        if (!table::contains(&registry.reports, copy report_id)) return false;
+        let entry = table::borrow(&registry.reports, copy report_id);
+        if (!entry.active) return false;
+        if (entry.owner == account) return true;
+        if (is_free(&entry.access)) return true;
+        table::contains(&registry.purchases, PurchaseKey { buyer: account, report_id })
     }
 
     fun validate_report(
