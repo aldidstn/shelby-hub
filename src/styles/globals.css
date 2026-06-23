@@ -1,0 +1,8 @@
+@import "./tokens.css";
+@import "./legacy-utilities.css";
+
+/*
+ * Existing utility selectors are frozen in legacy-utilities.css to preserve
+ * visual parity during the CSS Modules migration. New styles belong in a
+ * colocated module; do not add utility selectors to the compatibility sheet.
+ */

@@ -3,3 +3,12 @@
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
+
+## Project rules
+
+- Read `DESIGN.md`, `docs/architecture.md`, and `docs/security.md` before changing UI or access-control behavior.
+- Keep App Router pages thin; product behavior belongs under `src/features` and trusted infrastructure under `src/server`.
+- Never persist plaintext premium data keys. Only KMS ciphertext may be stored.
+- Never authorize premium access from client state, query parameters, or an unverified transaction hash.
+- Preserve Registry V1 as a read-only legacy source. New writes target Registry V2.
+- Run `npm run check` and `aptos move test --package-dir contract` before handoff.

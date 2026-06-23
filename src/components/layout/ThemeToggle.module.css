@@ -1,0 +1,9 @@
+.toggle { width:2.75rem; height:2.75rem; display:grid; place-items:center; border:1px solid var(--glass-border); border-radius:.8rem; background:var(--glass-bg); color:var(--text-secondary); box-shadow:inset 0 1px 0 var(--glass-highlight); transition:transform .2s,color .2s,background .2s; }
+.toggle:hover { color:var(--brand-pink); background:var(--glass-strong); transform:translateY(-1px); }
+.toggle:active { transform:translateY(0) scale(.96); }
+.toggle:focus-visible { outline:2px solid var(--brand-pink); outline-offset:2px; }
+.toggle svg { grid-area:1/1; width:1.1rem; height:1.1rem; transition:opacity .2s,transform .3s; }
+.moon { opacity:1; transform:rotate(0); }
+.sun { opacity:0; transform:rotate(-45deg); }
+:global(html[data-theme='light']) .moon { opacity:0; transform:rotate(45deg); }
+:global(html[data-theme='light']) .sun { opacity:1; transform:rotate(0); }
