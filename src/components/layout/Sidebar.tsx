@@ -65,7 +65,6 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
       {connected && account ? (
         <div className={styles.accountCard}>
-          <div className={styles.avatar}>{account.address.toString().slice(2, 4).toUpperCase()}</div>
           <div className={styles.accountText}><strong>{truncateAddress(account.address.toString())}</strong><small>Connected wallet</small></div>
           <button onClick={handleDisconnect} className={styles.disconnect} title="Disconnect wallet" aria-label="Disconnect wallet">↗</button>
         </div>

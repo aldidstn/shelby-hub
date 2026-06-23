@@ -36,15 +36,31 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!connected || !account) { setUploadedReports([]); return }
     let cancelled = false
-    authenticate()
-      .then(() => fetchReports(true))
-      .then((items) => { if (!cancelled) setUploadedReports(items) })
-      .catch((error) => {
+    const walletAddress = account.address.toString().toLowerCase()
+
+    async function loadProfileReports() {
+      setLoadError(null)
+      try {
+        try {
+          await authenticate()
+          const items = await fetchReports(true)
+          if (!cancelled) setUploadedReports(items)
+          return
+        } catch {
+          // Production can run in legacy V1 mode without PostgreSQL-backed SIWA.
+          // Profile reads are public catalog reads; write/delete actions still require wallet transactions.
+          const items = await fetchReports(false)
+          if (!cancelled) setUploadedReports(items.filter((report) => report.authorAddress.toLowerCase() === walletAddress))
+        }
+      } catch (error) {
         if (!cancelled) {
           setUploadedReports([])
           setLoadError(error instanceof Error ? error.message : 'Unable to load your reports')
         }
-      })
+      }
+    }
+
+    loadProfileReports()
     return () => { cancelled = true }
   }, [connected, account, authenticate])
 
@@ -115,12 +131,7 @@ export default function ProfilePage() {
       <div className={layout.pageLoose}>
 
         {/* Profile header */}
-        <div className="flex items-start gap-4">
-          <div className="w-14 h-14 rounded-full bg-pink-light flex items-center justify-center shrink-0">
-            <svg className="w-7 h-7 text-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-          </div>
+        <div className="flex items-start">
           <div className="flex flex-col gap-1 min-w-0">
             <h1 className="text-lg font-semibold text-brown">My Profile</h1>
             <div className="flex items-center gap-2">
