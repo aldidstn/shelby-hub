@@ -8,7 +8,7 @@ authors = []
 #   aptos init --network testnet
 # then:
 #   aptos account list
-shelby_registry = "0x38c009595f40c6533e3ee26437b9bed0f90e72eaf0737fd41d5e575ef8d2b6f6"
+shelby_registry = "_"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
