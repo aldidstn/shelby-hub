@@ -1,5 +1,5 @@
 {
   "crons": [
-    { "path": "/api/internal/indexer", "schedule": "*/5 * * * *" }
+    { "path": "/api/internal/indexer", "schedule": "0 0 * * *" }
   ]
 }
