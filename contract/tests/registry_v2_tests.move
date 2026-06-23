@@ -67,6 +67,35 @@ module shelby_registry::registry_v2_tests {
         coin::destroy_mint_cap(mint);
     }
 
+    #[test(admin = @shelby_registry, owner = @0xcafe, buyer = @0xbeef, framework = @0x1)]
+    fun ace_hook_tracks_owner_purchase_and_origin(admin: signer, owner: signer, buyer: signer, framework: signer) {
+        timestamp::set_time_has_started_for_testing(&framework);
+        let (burn, mint) = aptos_coin::initialize_for_test(&framework);
+        aptos_account::create_account(@0xcafe);
+        aptos_account::create_account(@0xbeef);
+        coin::deposit(@0xbeef, coin::mint<AptosCoin>(500, &mint));
+        registry_v2::initialize(&admin);
+        register_premium(&owner);
+
+        assert!(registry_v2::on_ace_decryption_request(
+            b"premium-1", @0xcafe, string::utf8(b"https://shelby-hub-iota.vercel.app"),
+        ), 10);
+        assert!(!registry_v2::on_ace_decryption_request(
+            b"premium-1", @0xbeef, string::utf8(b"https://shelby-hub-iota.vercel.app"),
+        ), 11);
+        assert!(!registry_v2::on_ace_decryption_request(
+            b"premium-1", @0xcafe, string::utf8(b"https://evil.example"),
+        ), 12);
+
+        registry_v2::purchase_report(&buyer, @shelby_registry, string::utf8(b"premium-1"));
+        assert!(registry_v2::on_ace_decryption_request(
+            b"premium-1", @0xbeef, string::utf8(b"https://shelby-hub-iota.vercel.app"),
+        ), 13);
+
+        coin::destroy_burn_cap(burn);
+        coin::destroy_mint_cap(mint);
+    }
+
     fun register_free(owner: &signer) {
         registry_v2::register_report(
             owner,
