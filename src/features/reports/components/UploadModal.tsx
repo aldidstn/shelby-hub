@@ -8,7 +8,7 @@ import type { Report } from '../types/report'
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import { encryptReportFile } from '@/features/reports/services/encryption'
 import { finalizeReport, prepareReport } from '@/features/reports/services/api'
-import { registerReportPayload } from '@/features/reports/services/registry'
+import { registerLegacyReportPayload, registerReportPayload } from '@/features/reports/services/registry'
 import layout from '@/styles/layout.module.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -66,6 +66,8 @@ const MIME_TO_FILE_TYPE: Record<string, Report['fileType']> = {
   'audio/wav':        'wav',
   'audio/ogg':        'ogg',
 }
+
+const HAS_REGISTRY_V2 = Boolean(process.env.NEXT_PUBLIC_REGISTRY_V2_ADDRESS)
 
 function formatBytes(bytes: number) {
   if (bytes < 1024)        return `${bytes} B`
@@ -205,59 +207,141 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   async function handleUpload() {
     if (!file || !connected || !account) return
 
-    setProgress({ step: 'reading', uploadedBytes: 0, totalBytes: file.size })
+    const selectedFile = file
+    setProgress({ step: 'reading', uploadedBytes: 0, totalBytes: selectedFile.size })
+    const walletAddress = account.address.toString()
+    const parsedPrice  = access === 'premium' ? parseFloat(price) : 0
+    const priceOctas   = isNaN(parsedPrice) || parsedPrice <= 0 ? 0 : Math.round(parsedPrice * 1e8)
+    const parsedTags   = tags.split(',').map(t => t.trim()).filter(Boolean)
+    const displayTitle = title.trim() || selectedFile.name.replace(/\.[^.]+$/, '')
+    const authorName   = `${walletAddress.slice(0, 10)}…`
+    const fileType     = MIME_TO_FILE_TYPE[selectedFile.type] ?? 'pdf'
 
-    try {
-      await authenticate()
-      const parsedPrice  = access === 'premium' ? parseFloat(price) : 0
-      const priceOctas   = isNaN(parsedPrice) || parsedPrice <= 0 ? 0 : Math.round(parsedPrice * 1e8)
-      const parsedTags   = tags.split(',').map(t => t.trim()).filter(Boolean)
-      const displayTitle = title.trim() || file.name.replace(/\.[^.]+$/, '')
-      const fileType     = MIME_TO_FILE_TYPE[file.type] ?? 'pdf'
-      const prepared = await prepareReport({
-        title: displayTitle, description: description.trim(), reportType, access,
-        priceOctas, fileType, tags: parsedTags, network,
-      })
-
-      let uploadFile = file
-      let uploadBlobName = blobName
-      let cipherHash: string | undefined
-      let encryptionIv: string | undefined
-      if (access === 'premium') {
-        if (!prepared.dataKey) throw new Error('The key service did not return an encryption key')
-        setProgress({ step: 'generating', uploadedBytes: 0, totalBytes: file.size })
-        const encrypted = await encryptReportFile(file, prepared.dataKey)
-        uploadFile = encrypted.file
-        uploadBlobName = `${blobName}.enc`
-        cipherHash = encrypted.cipherHash
-        encryptionIv = encrypted.iv
-      }
-
+    async function uploadFreeDirectly() {
       const result = await uploadToShelby({
-        file: uploadFile,
-        blobName: uploadBlobName,
+        file: selectedFile,
+        blobName,
         expirationMs: expiryMs,
         network,
-        walletAddress: account.address.toString(),
+        walletAddress,
         signAndSubmit: (payload) =>
           signAndSubmitTransaction(payload as Parameters<typeof signAndSubmitTransaction>[0]),
         onProgress: setProgress,
       })
 
       setProgress({ step: 'publishing', uploadedBytes: 0, totalBytes: 0 })
+      const legacyPayload = registerLegacyReportPayload({
+        blobAccount: walletAddress,
+        blobName: result.blobName,
+        network,
+        title: displayTitle,
+        description: description.trim(),
+        reportType,
+        priceOctas: 0,
+        fileType,
+        tags: parsedTags,
+        author: authorName,
+      })
+      const registration = legacyPayload
+        ? await signAndSubmitTransaction({ data: legacyPayload })
+        : null
+      const transactionHash = registration?.hash ?? result.id
+
+      setTxHash(transactionHash)
+      setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
+      onUploadComplete({
+        id: `${result.blobAccount}/${result.blobName}`,
+        title: displayTitle,
+        description: description.trim(),
+        type: reportType,
+        access: 'free',
+        likes: 0,
+        downloads: 0,
+        author: authorName,
+        authorAddress: walletAddress,
+        createdAt: new Date().toISOString(),
+        onChain: Boolean(legacyPayload),
+        fileType,
+        tags: parsedTags,
+        blobAccount: result.blobAccount,
+        blobName: result.blobName,
+        network,
+      })
+    }
+
+    let secureStage: 'auth' | 'prepare' | 'encrypt' | 'upload' | 'publish' | 'finalize' = 'auth'
+
+    try {
+      if (access === 'free' && !HAS_REGISTRY_V2) {
+        await uploadFreeDirectly()
+        return
+      }
+
+      secureStage = 'auth'
+      await authenticate()
+      secureStage = 'prepare'
+      const prepared = await prepareReport({
+        title: displayTitle, description: description.trim(), reportType, access,
+        priceOctas, fileType, tags: parsedTags, network,
+      })
+
+      let uploadFile = selectedFile
+      let uploadBlobName = blobName
+      let cipherHash: string | undefined
+      let encryptionIv: string | undefined
+      if (access === 'premium') {
+        if (!prepared.dataKey) throw new Error('The key service did not return an encryption key')
+        secureStage = 'encrypt'
+        setProgress({ step: 'generating', uploadedBytes: 0, totalBytes: selectedFile.size })
+        const encrypted = await encryptReportFile(selectedFile, prepared.dataKey)
+        uploadFile = encrypted.file
+        uploadBlobName = `${blobName}.enc`
+        cipherHash = encrypted.cipherHash
+        encryptionIv = encrypted.iv
+      }
+
+      secureStage = 'upload'
+      const result = await uploadToShelby({
+        file: uploadFile,
+        blobName: uploadBlobName,
+        expirationMs: expiryMs,
+        network,
+        walletAddress,
+        signAndSubmit: (payload) =>
+          signAndSubmitTransaction(payload as Parameters<typeof signAndSubmitTransaction>[0]),
+        onProgress: setProgress,
+      })
+
+      secureStage = 'publish'
+      setProgress({ step: 'publishing', uploadedBytes: 0, totalBytes: 0 })
       const registration = await signAndSubmitTransaction({ data: registerReportPayload({
         id: prepared.id, blobName: result.blobName, network, title: displayTitle,
         description: description.trim(), reportType, access, priceOctas, fileType,
         tags: parsedTags, cipherHash, encryptionVersion: access === 'premium' ? 1 : 0,
       }) })
+      secureStage = 'finalize'
       const report = await finalizeReport(prepared.id, {
         blobName: result.blobName, transactionHash: registration.hash, cipherHash, encryptionIv,
       })
       setTxHash(registration.hash)
-      setProgress({ step: 'done', uploadedBytes: file.size, totalBytes: file.size })
+      setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
       onUploadComplete(report)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unexpected error'
+      if (access === 'free' && (secureStage === 'auth' || secureStage === 'prepare')) {
+        try {
+          await uploadFreeDirectly()
+          return
+        } catch (fallbackError: unknown) {
+          const msg = fallbackError instanceof Error ? fallbackError.message : 'Unexpected error'
+          setProgress((p) => p ? { ...p, step: 'error', errorMessage: msg } : null)
+          return
+        }
+      }
+
+      let msg = err instanceof Error ? err.message : 'Unexpected error'
+      if (access === 'premium' && msg === 'Internal server error') {
+        msg = 'Premium uploads require the secure backend database and KMS to be configured.'
+      }
       setProgress((p) => p ? { ...p, step: 'error', errorMessage: msg } : null)
     }
   }
