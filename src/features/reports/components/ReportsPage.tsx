@@ -8,7 +8,6 @@ import { FilterBar, type Filters } from '@/features/reports/components/FilterBar
 import { ReportCard } from '@/features/reports/components/ReportCard'
 import { PurchaseModal } from '@/features/purchases/components/PurchaseModal'
 import { UploadModal } from '@/features/reports/components/UploadModal'
-import { STATIC_REPORTS } from '@/features/reports/data/content'
 import { type Report } from '@/features/reports/types/report'
 import { fetchReports } from '@/features/reports/services/api'
 import { useWalletSession } from '@/features/auth/useWalletSession'
@@ -71,7 +70,8 @@ function ReportsPageInner() {
   // Reset page on search/filter change
   useEffect(() => { setPage(1) }, [urlQuery])
 
-  // All reports: optimistic uploads first, then registry, then static fallback
+  // All reports: optimistic uploads first, then live registry/indexed data.
+  // Never show sample data as if it were a live catalog.
   const allReports = useMemo(() => {
     if (apiAvailable) {
       // Deduplicate: local reports take precedence (same blobName key)
@@ -79,8 +79,7 @@ function ReportsPageInner() {
       const deduped = localReports.filter((r) => !registryIds.has(r.id))
       return [...deduped, ...registryReports]
     }
-    // No contract deployed yet — show static reports + local uploads
-    return [...localReports, ...STATIC_REPORTS]
+    return localReports
   }, [registryReports, localReports, apiAvailable])
 
   const filtered = useMemo(() => {
@@ -186,7 +185,7 @@ function ReportsPageInner() {
 
       {catalogError && (
         <div role="status" className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-xs text-text-secondary">
-          Live catalog unavailable: {catalogError}. Showing legacy sample reports.
+          Live catalog unavailable: {catalogError}. Showing only reports uploaded in this browser session.
         </div>
       )}
 

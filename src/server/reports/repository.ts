@@ -1,6 +1,7 @@
 import { and, desc, eq, ilike, or } from 'drizzle-orm'
 import { getDb } from '@/server/db/client'
 import { purchases, reports } from '@/server/db/schema'
+import { findLegacyReport, listLegacyReports } from '@/server/reports/legacy-registry'
 import type { Report } from '@/features/reports/types/report'
 
 export function toReport(row: typeof reports.$inferSelect, walletAddress?: string | null, purchased = false): Report {
@@ -32,29 +33,44 @@ export function toReport(row: typeof reports.$inferSelect, walletAddress?: strin
 }
 
 export async function listReports(input: { query?: string; owner?: string; walletAddress?: string | null }) {
-  const filters = [eq(reports.status, 'active'), eq(reports.active, true)]
-  if (input.owner) filters.push(eq(reports.ownerAddress, input.owner))
-  if (input.query) {
-    const query = `%${input.query}%`
-    const search = or(ilike(reports.title, query), ilike(reports.description, query))
-    if (search) filters.push(search)
+  if (!process.env.DATABASE_URL) return listLegacyReports({ query: input.query, owner: input.owner })
+
+  try {
+    const filters = [eq(reports.status, 'active'), eq(reports.active, true)]
+    if (input.owner) filters.push(eq(reports.ownerAddress, input.owner))
+    if (input.query) {
+      const query = `%${input.query}%`
+      const search = or(ilike(reports.title, query), ilike(reports.description, query))
+      if (search) filters.push(search)
+    }
+    const rows = await getDb().select().from(reports).where(and(...filters)).orderBy(desc(reports.createdAt)).limit(100)
+    if (rows.length === 0) return listLegacyReports({ query: input.query, owner: input.owner })
+    if (!input.walletAddress) return rows.map((row) => toReport(row))
+    const ownedPurchases = await getDb().select({ reportId: purchases.reportId }).from(purchases).where(eq(purchases.buyerAddress, input.walletAddress))
+    const purchasedIds = new Set(ownedPurchases.map((item) => item.reportId))
+    return rows.map((row) => toReport(row, input.walletAddress, purchasedIds.has(row.id)))
+  } catch (error) {
+    console.warn('Falling back to legacy registry reports:', error)
+    return listLegacyReports({ query: input.query, owner: input.owner })
   }
-  const rows = await getDb().select().from(reports).where(and(...filters)).orderBy(desc(reports.createdAt)).limit(100)
-  if (!input.walletAddress) return rows.map((row) => toReport(row))
-  const ownedPurchases = await getDb().select({ reportId: purchases.reportId }).from(purchases).where(eq(purchases.buyerAddress, input.walletAddress))
-  const purchasedIds = new Set(ownedPurchases.map((item) => item.reportId))
-  return rows.map((row) => toReport(row, input.walletAddress, purchasedIds.has(row.id)))
 }
 
 export async function findReport(id: string, walletAddress?: string | null) {
-  const [row] = await getDb().select().from(reports).where(eq(reports.id, id)).limit(1)
-  if (!row) return null
-  let purchased = false
-  if (walletAddress) {
-    const [receipt] = await getDb().select({ id: purchases.id }).from(purchases).where(and(
-      eq(purchases.reportId, id), eq(purchases.buyerAddress, walletAddress),
-    )).limit(1)
-    purchased = Boolean(receipt)
+  if (!process.env.DATABASE_URL) return findLegacyReport(id)
+
+  try {
+    const [row] = await getDb().select().from(reports).where(eq(reports.id, id)).limit(1)
+    if (!row) return findLegacyReport(id)
+    let purchased = false
+    if (walletAddress) {
+      const [receipt] = await getDb().select({ id: purchases.id }).from(purchases).where(and(
+        eq(purchases.reportId, id), eq(purchases.buyerAddress, walletAddress),
+      )).limit(1)
+      purchased = Boolean(receipt)
+    }
+    return toReport(row, walletAddress, purchased)
+  } catch (error) {
+    console.warn('Falling back to legacy registry report:', error)
+    return findLegacyReport(id)
   }
-  return toReport(row, walletAddress, purchased)
 }
