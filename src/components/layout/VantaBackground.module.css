@@ -1,0 +1,39 @@
+.background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--background);
+}
+.background::before,
+.background::after {
+  content: '';
+  position: absolute;
+  width: 70vw;
+  height: 70vw;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: .75;
+  will-change: transform;
+}
+.background::before {
+  top: -38vw;
+  right: -18vw;
+  background: radial-gradient(circle, var(--ambient-one), transparent 68%);
+  animation: floatOne 18s ease-in-out infinite alternate;
+}
+.background::after {
+  left: -28vw;
+  bottom: -45vw;
+  background: radial-gradient(circle, var(--ambient-two), var(--ambient-three) 38%, transparent 70%);
+  animation: floatTwo 24s ease-in-out infinite alternate;
+}
+:global(html[data-theme='light']) .background::before,
+:global(html[data-theme='light']) .background::after {
+  opacity: 0;
+  animation: none;
+}
+@keyframes floatOne { to { transform: translate3d(-9vw, 12vh, 0) scale(1.08); } }
+@keyframes floatTwo { to { transform: translate3d(16vw, -9vh, 0) scale(.92); } }
+@media (prefers-reduced-motion: reduce) { .background::before,.background::after { animation:none; } }

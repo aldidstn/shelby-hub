@@ -1,0 +1,1 @@
+ALTER TABLE "reports" ADD COLUMN "blob_account" text NOT NULL;

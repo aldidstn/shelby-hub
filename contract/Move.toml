@@ -12,5 +12,5 @@ shelby_registry = "0x38c009595f40c6533e3ee26437b9bed0f90e72eaf0737fd41d5e575ef8d
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "main"
+rev = "e2550719488c2f88f8b36d19ad79bed170be124d"
 subdir = "aptos-move/framework/aptos-framework"

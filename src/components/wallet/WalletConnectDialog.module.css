@@ -1,0 +1,54 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(12 4 9 / .58);
+  backdrop-filter: blur(14px);
+  animation: fadeIn .2s ease-out;
+}
+
+.dialog {
+  width: min(27rem, 100%);
+  padding: 1.25rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.35rem;
+  background: var(--glass-strong);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+  backdrop-filter: blur(30px) saturate(150%);
+  animation: enter .32s cubic-bezier(.16, 1, .3, 1);
+}
+
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: .2rem .2rem 1.1rem; }
+.header small { color: var(--brand-pink); font-size: .75rem; font-weight: 750; letter-spacing: .1em; }
+.header h2 { margin-top: .3rem; color: var(--text-primary); font-family: var(--font-display); font-size: 1.35rem; line-height: 1.2; }
+.header p { max-width: 20rem; margin-top: .4rem; color: var(--text-muted); font-size: .875rem; line-height: 1.55; }
+.header button { width: 2.75rem; height: 2.75rem; flex: none; border-radius: .7rem; color: var(--text-muted); font-size: 1.4rem; }
+.header button:hover { color: var(--text-primary); background: var(--surface); }
+.header button:focus-visible,.walletList button:focus-visible,.emptyState a:focus-visible { outline: 2px solid var(--brand-pink); outline-offset: 2px; }
+
+.walletList { display: flex; flex-direction: column; gap: .55rem; }
+.walletList > button { display: flex; align-items: center; gap: .8rem; min-height: 3.25rem; padding: .75rem .85rem; border: 1px solid var(--divider); border-radius: .9rem; color: var(--text-primary); background: color-mix(in srgb, var(--surface) 84%, transparent); transition: border-color .18s, transform .18s, background .18s; }
+.walletList > button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--brand-pink) 55%, transparent); background: var(--surface); transform: translateY(-1px); }
+.walletList > button:disabled { cursor: wait; opacity: .65; }
+.walletList span { font-size: .9rem; font-weight: 600; }
+.walletList b { margin-left: auto; color: var(--brand-pink); font-size: .75rem; }
+
+.emptyState { padding: 1.5rem 1rem; border: 1px dashed var(--divider); border-radius: .9rem; text-align: center; }
+.emptyState strong { color: var(--text-primary); font-size: .9rem; }
+.emptyState p { margin: .4rem auto .8rem; color: var(--text-muted); font-size: .875rem; line-height: 1.55; }
+.emptyState a { color: var(--brand-pink); font-size: .875rem; font-weight: 650; }
+.error { margin-top: .7rem; color: var(--semantic-negative); font-size: .875rem; text-align: center; }
+.notice { margin-top: 1rem; color: var(--text-muted); font-size: .75rem; line-height: 1.5; text-align: center; }
+
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes enter { from { opacity: 0; transform: translateY(12px) scale(.98); } }
+@media (max-width: 600px) {
+  .dialog { padding: 1rem; }
+  .header p,.emptyState p { font-size: .82rem; }
+  .walletList span { font-size: .9rem; }
+  .notice { font-size: .75rem; line-height: 1.5; }
+}
+@media (prefers-reduced-motion: reduce) { .backdrop,.dialog { animation: none; } }
