@@ -69,6 +69,13 @@ const MIME_TO_FILE_TYPE: Record<string, Report['fileType']> = {
 
 const HAS_REGISTRY_V2 = Boolean(process.env.NEXT_PUBLIC_REGISTRY_V2_ADDRESS)
 
+type UploadCapabilities = {
+  uploads?: {
+    free?: boolean
+    premium?: boolean
+  }
+}
+
 function formatBytes(bytes: number) {
   if (bytes < 1024)        return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -148,9 +155,14 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   const [progress, setProgress] = useState<UploadProgress | null>(null)
   const [txHash, setTxHash]     = useState<string | null>(null)
   const [copied, setCopied]     = useState(false)
+  const [premiumUploadsAvailable, setPremiumUploadsAvailable] = useState(HAS_REGISTRY_V2)
 
   const inputRef  = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
+  const isUploading = progress !== null && progress.step !== 'done' && progress.step !== 'error'
+  const isDone      = progress?.step === 'done'
+  const isError     = progress?.step === 'error'
+  const fileInfo    = file ? ACCEPTED_TYPES[file.type] : null
 
   // Focus trap
   useEffect(() => {
@@ -177,6 +189,26 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     document.addEventListener('keydown', trap)
     return () => document.removeEventListener('keydown', trap)
   }, [onClose, file, progress])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/system/capabilities', { cache: 'no-store' })
+      .then(async (response) => response.ok ? await response.json() as UploadCapabilities : null)
+      .then((capabilities) => {
+        if (!cancelled) setPremiumUploadsAvailable(Boolean(capabilities?.uploads?.premium))
+      })
+      .catch(() => {
+        if (!cancelled) setPremiumUploadsAvailable(false)
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    if (!premiumUploadsAvailable && access === 'premium' && !isUploading) {
+      setAccess('free')
+      setPrice('')
+    }
+  }, [access, isUploading, premiumUploadsAvailable])
 
   function handleFile(f: File) {
     setFile(f)
@@ -346,11 +378,6 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     }
   }
 
-  const isUploading = progress !== null && progress.step !== 'done' && progress.step !== 'error'
-  const isDone      = progress?.step === 'done'
-  const isError     = progress?.step === 'error'
-  const fileInfo    = file ? ACCEPTED_TYPES[file.type] : null
-
   function handleCopyHash() {
     if (!txHash) return
     navigator.clipboard.writeText(txHash).then(() => {
@@ -364,6 +391,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     blobName.trim().length > 0 &&
     title.trim().length > 0 &&
     !isUploading &&
+    !(access === 'premium' && !premiumUploadsAvailable) &&
     !(access === 'premium' && (!price || parseFloat(price) <= 0))
 
   return (
@@ -606,17 +634,22 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 </button>
                 <button
                   onClick={() => setAccess('premium')}
-                  disabled={isUploading}
+                  disabled={isUploading || !premiumUploadsAvailable}
                   aria-pressed={access === 'premium'}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors duration-150 ${
                     access === 'premium'
                       ? 'bg-pink text-white border-pink'
                       : 'bg-surface text-text-secondary border-divider hover:border-pink hover:text-pink'
-                  }`}
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   Paid
                 </button>
               </div>
+              {!premiumUploadsAvailable && (
+                <p className="text-xs text-text-muted">
+                  Paid uploads are temporarily disabled until the secure database and KMS backend is configured. Use Free to upload now.
+                </p>
+              )}
               {access === 'premium' && (
                 <div className="flex items-center gap-2 mt-1">
                   <div className="relative flex-1">
