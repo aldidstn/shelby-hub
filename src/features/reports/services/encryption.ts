@@ -10,8 +10,14 @@ function encodeBase64(value: ArrayBuffer | Uint8Array) {
   return btoa(binary)
 }
 
-export async function sha256Base64(data: ArrayBuffer) {
-  return encodeBase64(await crypto.subtle.digest('SHA-256', data))
+export function toArrayBuffer(bytes: Uint8Array) {
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return copy.buffer
+}
+
+export async function sha256Base64(data: ArrayBuffer | Uint8Array) {
+  return encodeBase64(await crypto.subtle.digest('SHA-256', data instanceof Uint8Array ? toArrayBuffer(data) : data))
 }
 
 export async function encryptReportFile(file: File, base64Key: string) {

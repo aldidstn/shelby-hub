@@ -21,7 +21,7 @@ export default async function ReportReaderPage({ params }: Props) {
     const session = await getOptionalSession()
     const indexed = await findReport(id, session?.walletAddress)
     if (!indexed || !indexed.blobAccount || !indexed.blobName || indexed.active === false) notFound()
-    if (indexed.access === 'premium' && !indexed.purchased && !indexed.owned) {
+    if (indexed.access === 'premium' && indexed.encryptionVersion !== 'ace-ibe-v1' && !indexed.purchased && !indexed.owned) {
       return <LockedReport title={indexed.title} />
     }
     return <BlobReaderPage report={indexed} />

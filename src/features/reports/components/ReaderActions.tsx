@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { downloadShelbyBlob, type DownloadStatus } from '../services/shelby-download'
 import type { Report } from '../types/report'
-import { downloadReport } from '@/features/reports/services/download'
+import { downloadReport, type AceWalletSigner } from '@/features/reports/services/download'
 
 interface ReaderActionsProps {
   initialLikes: number
@@ -13,6 +13,7 @@ interface ReaderActionsProps {
   blobName?: string
   directUrl?: string   // when set, download button is a direct link to this URL
   report?: Report
+  aceSigner?: AceWalletSigner
 }
 
 export function ReaderActions({
@@ -23,6 +24,7 @@ export function ReaderActions({
   blobName,
   directUrl,
   report,
+  aceSigner,
 }: ReaderActionsProps) {
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(initialLikes)
@@ -49,7 +51,7 @@ export function ReaderActions({
 
     if (report) {
       try {
-        await downloadReport(report)
+        await downloadReport(report, aceSigner)
         setDownloadStatus('success')
         setTimeout(() => setDownloadStatus('idle'), 3000)
       } catch (error) {

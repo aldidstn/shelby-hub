@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { type Report } from '../types/report'
 import { downloadReport } from '@/features/reports/services/download'
 import styles from './ReportCard.module.css'
@@ -29,6 +30,7 @@ interface ReportCardProps {
 }
 
 export function ReportCard({ report, purchased = false, walletConnected = false, onBuy }: ReportCardProps) {
+  const { account, signMessage } = useWallet()
   const [copied, setCopied]         = useState(false)
   const [downloading, setDownloading] = useState(false)
 
@@ -46,7 +48,13 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
   async function handleDownload() {
     if (!report.blobAccount || !report.blobName) return
     setDownloading(true)
-    try { await downloadReport(report) } finally { setDownloading(false) }
+    try {
+      await downloadReport(report, report.encryptionVersion === 'ace-ibe-v1' && account?.publicKey ? {
+        accountAddress: account.address.toString(),
+        publicKey: account.publicKey,
+        signMessage,
+      } : undefined)
+    } finally { setDownloading(false) }
   }
 
   return (

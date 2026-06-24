@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { ReaderActions } from './ReaderActions'
 import { getBlobReadUrl } from '../services/shelby-download'
 import type { Report } from '../types/report'
-import { fetchReportBlob } from '@/features/reports/services/download'
+import { fetchReportBlob, type AceWalletSigner } from '@/features/reports/services/download'
 import layout from '@/styles/layout.module.css'
 
 
@@ -53,6 +54,7 @@ function renderMarkdown(text: string) {
 }
 
 export function BlobReaderPage({ report }: BlobReaderPageProps) {
+  const { connected, account, signMessage } = useWallet()
   const { blobAccount = '', blobName = '', fileType, title, network = 'testnet' } = report
   const blobUrl = getBlobReadUrl(blobAccount, blobName, network)
 
@@ -62,23 +64,47 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
   const [fetchError, setFetchError]     = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     let revoke: string | null = null
-    fetchReportBlob(report)
-      .then((blob) => {
-        if (TEXT_TYPES.has(fileType)) return blob.text().then((text) => { setTextContent(text) })
-        // Binary types: create a local object URL so the browser never sees
-        // Content-Disposition: attachment from the Shelby API
-        return Promise.resolve().then(() => {
+    const aceSigner: AceWalletSigner | undefined = report.encryptionVersion === 'ace-ibe-v1' && connected && account?.publicKey
+      ? {
+          accountAddress: account.address.toString(),
+          publicKey: account.publicKey,
+          signMessage,
+      }
+      : undefined
+
+    async function loadReportBlob() {
+      setLoading(true)
+      setFetchError(null)
+      setTextContent(null)
+      setObjectUrl(null)
+
+      try {
+        const blob = await fetchReportBlob(report, aceSigner)
+        if (cancelled) return
+        if (TEXT_TYPES.has(fileType)) {
+          setTextContent(await blob.text())
+        } else {
           const url = URL.createObjectURL(blob)
           revoke = url
           setObjectUrl(url)
-        })
-      })
-      .then(() => setLoading(false))
-      .catch((e) => { setFetchError(e.message); setLoading(false) })
+        }
+        setLoading(false)
+      } catch (e) {
+        if (cancelled) return
+        setFetchError(e instanceof Error ? e.message : 'Unable to load content')
+        setLoading(false)
+      }
+    }
 
-    return () => { if (revoke) URL.revokeObjectURL(revoke) }
-  }, [blobUrl, fileType, report])
+    void loadReportBlob()
+
+    return () => {
+      cancelled = true
+      if (revoke) URL.revokeObjectURL(revoke)
+    }
+  }, [account, blobUrl, connected, fileType, report, signMessage])
 
   return (
     <div className={layout.reader}>
@@ -132,6 +158,11 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
               blobName={blobName}
               directUrl={report.encryptionVersion ? undefined : blobUrl}
               report={report}
+              aceSigner={report.encryptionVersion === 'ace-ibe-v1' && connected && account?.publicKey ? {
+                accountAddress: account.address.toString(),
+                publicKey: account.publicKey,
+                signMessage,
+              } : undefined}
             />
           </div>
         </header>
