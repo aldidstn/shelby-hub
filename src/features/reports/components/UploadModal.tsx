@@ -8,6 +8,7 @@ import type { Report } from '../types/report'
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import { sha256Base64, toArrayBuffer } from '@/features/reports/services/encryption'
 import { finalizeReport, prepareReport } from '@/features/reports/services/api'
+import { upsertLocalReport } from '@/features/reports/services/local-catalog'
 import { registerLegacyReportPayload, registerReportPayload, verifyReportRegistration } from '@/features/reports/services/registry'
 import { encryptReportWithAce } from '@/lib/ace/reports'
 import layout from '@/styles/layout.module.css'
@@ -283,9 +284,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         : null
       const transactionHash = registration?.hash ?? result.id
 
-      setTxHash(transactionHash)
-      setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
-      onUploadComplete({
+      const uploadedReport: Report = {
         id: `${result.blobAccount}/${result.blobName}`,
         title: displayTitle,
         description: description.trim(),
@@ -302,7 +301,13 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         blobAccount: result.blobAccount,
         blobName: result.blobName,
         network,
-      })
+        owned: true,
+        active: true,
+      }
+      upsertLocalReport(uploadedReport, walletAddress)
+      setTxHash(transactionHash)
+      setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
+      onUploadComplete(uploadedReport)
     }
 
     async function uploadPremiumWithAce() {
@@ -356,9 +361,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
       })
 
       const now = new Date().toISOString()
-      setTxHash(registration.hash)
-      setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
-      onUploadComplete({
+      const uploadedReport: Report = {
         id: reportId,
         title: displayTitle,
         description: description.trim(),
@@ -380,7 +383,11 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         cipherHash,
         owned: true,
         active: true,
-      })
+      }
+      upsertLocalReport(uploadedReport, walletAddress)
+      setTxHash(registration.hash)
+      setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
+      onUploadComplete(uploadedReport)
     }
 
     let secureStage: 'auth' | 'prepare' | 'encrypt' | 'upload' | 'publish' | 'finalize' = 'auth'
@@ -427,6 +434,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
       const report = await finalizeReport(prepared.id, {
         blobName: result.blobName, transactionHash: registration.hash,
       })
+      upsertLocalReport({ ...report, owned: true }, walletAddress)
       setTxHash(registration.hash)
       setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
       onUploadComplete(report)
