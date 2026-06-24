@@ -35,7 +35,10 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
   const [downloading, setDownloading] = useState(false)
 
   const hasBlobFile = Boolean(report.blobAccount && report.blobName)
-  const canDownload = hasBlobFile && (report.access === 'free' || purchased)
+  const isOwned = Boolean(report.owned)
+  const isPurchased = Boolean(report.purchased || purchased)
+  const isUnlocked = isOwned || isPurchased
+  const canDownload = hasBlobFile && (report.access === 'free' || isUnlocked)
 
   function handleShare() {
     const url = `${window.location.origin}/reports/${report.id}`
@@ -79,8 +82,21 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
 
       {/* Title + price badge */}
       <div className={styles.headingRow}>
-        <h3 className={styles.title}><Link href={`/reports/${encodeURIComponent(report.id)}`}>{report.title}</Link></h3>
-        {purchased ? (
+        <h3 className={styles.title}>
+          {report.access === 'premium' && !isUnlocked ? (
+            <button type="button" onClick={() => onBuy(report)} className={styles.titleButton}>{report.title}</button>
+          ) : (
+            <Link href={`/reports/${encodeURIComponent(report.id)}`}>{report.title}</Link>
+          )}
+        </h3>
+        {isOwned ? (
+          <span className={`${styles.priceBadge} ${styles.purchased}`}>
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Owned
+          </span>
+        ) : isPurchased ? (
           <span className={`${styles.priceBadge} ${styles.purchased}`}>
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -162,7 +178,7 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
           )}
 
           {/* Buy (premium, not yet purchased) */}
-          {report.access === 'premium' && !purchased && (
+          {report.access === 'premium' && !isUnlocked && (
             <button
               onClick={() => onBuy(report)}
               disabled={!walletConnected}

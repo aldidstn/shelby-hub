@@ -4,10 +4,11 @@ import { type ReportAccess, type ReportType } from '../types/report'
 import styles from './FilterBar.module.css'
 
 export type SortBy = 'latest' | 'most-downloaded' | 'price-asc' | 'price-desc'
+export type AccessFilter = ReportAccess | 'All' | 'purchased'
 
 export interface Filters {
   type: ReportType | 'All'
-  access: ReportAccess | 'All'
+  access: AccessFilter
   sortBy: SortBy
 }
 
@@ -17,6 +18,7 @@ interface FilterBarProps {
   totalCount: number
   freeCount: number
   premiumCount: number
+  purchasedCount: number
 }
 
 const TYPES: Array<ReportType | 'All'> = ['All', 'Research', 'Analysis', 'Intel', 'Document', 'Report']
@@ -28,7 +30,7 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'price-desc', label: 'Price: High → Low' },
 ]
 
-export function FilterBar({ filters, onChange, totalCount, freeCount, premiumCount }: FilterBarProps) {
+export function FilterBar({ filters, onChange, totalCount, freeCount, premiumCount, purchasedCount }: FilterBarProps) {
   function set<K extends keyof Filters>(key: K, value: Filters[K]) {
     onChange({ ...filters, [key]: value })
   }
@@ -43,6 +45,7 @@ export function FilterBar({ filters, onChange, totalCount, freeCount, premiumCou
             { value: 'All', label: `All (${totalCount})` },
             { value: 'free', label: `Free (${freeCount})` },
             { value: 'premium', label: `Premium (${premiumCount})` },
+            { value: 'purchased', label: `Purchased (${purchasedCount})` },
           ] as const
         ).map((tab) => (
           <button

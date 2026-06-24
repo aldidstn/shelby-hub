@@ -17,11 +17,15 @@ const FILE_TYPE_LABELS: Record<string, string> = {
   mp3: 'MP3', wav: 'WAV', ogg: 'OGG', txt: 'Text',
 }
 
+type ProfileFilter = 'uploaded' | 'purchased'
+
 export default function ProfilePage() {
-  const { connected, account, signAndSubmitTransaction } = useWallet()
+  const { connected, account, signAndSubmitTransaction, signMessage } = useWallet()
   const { authenticate } = useWalletSession()
 
   const [uploadedReports, setUploadedReports] = useState<Report[]>([])
+  const [purchasedReports, setPurchasedReports] = useState<Report[]>([])
+  const [activeFilter, setActiveFilter] = useState<ProfileFilter>('uploaded')
   const [copied, setCopied] = useState(false)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Report | null>(null)
@@ -34,27 +38,30 @@ export default function ProfilePage() {
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!connected || !account) { setUploadedReports([]); return }
+    if (!connected || !account) { setUploadedReports([]); setPurchasedReports([]); return }
     let cancelled = false
     const walletAddress = account.address.toString().toLowerCase()
 
     async function loadProfileReports() {
       setLoadError(null)
       try {
+        let items: Report[]
         try {
           await authenticate()
-          const items = await fetchReports(true)
-          if (!cancelled) setUploadedReports(items)
-          return
+          items = await fetchReports(false)
         } catch {
           // Production can run in legacy V1 mode without PostgreSQL-backed SIWA.
           // Profile reads are public catalog reads; write/delete actions still require wallet transactions.
-          const items = await fetchReports(false)
-          if (!cancelled) setUploadedReports(items.filter((report) => report.authorAddress.toLowerCase() === walletAddress))
+          items = await fetchReports(false)
+        }
+        if (!cancelled) {
+          setUploadedReports(items.filter((report) => report.authorAddress.toLowerCase() === walletAddress))
+          setPurchasedReports(items.filter((report) => Boolean(report.purchased) && report.authorAddress.toLowerCase() !== walletAddress))
         }
       } catch (error) {
         if (!cancelled) {
           setUploadedReports([])
+          setPurchasedReports([])
           setLoadError(error instanceof Error ? error.message : 'Unable to load your reports')
         }
       }
@@ -78,7 +85,8 @@ export default function ProfilePage() {
   }
 
   function handleUploadComplete(report: Report) {
-    setUploadedReports((prev) => [report, ...prev])
+    setUploadedReports((prev) => [{ ...report, owned: true }, ...prev])
+    setActiveFilter('uploaded')
   }
 
   async function saveEdit() {
@@ -109,7 +117,13 @@ export default function ProfilePage() {
 
   async function handleDownload(report: Report) {
     setDownloadingId(report.id)
-    try { await downloadReport(report) } finally { setDownloadingId(null) }
+    try {
+      await downloadReport(report, report.encryptionVersion === 'ace-ibe-v1' && account?.publicKey ? {
+        accountAddress: account.address.toString(),
+        publicKey: account.publicKey,
+        signMessage,
+      } : undefined)
+    } finally { setDownloadingId(null) }
   }
 
   if (!connected || !account) {
@@ -125,6 +139,12 @@ export default function ProfilePage() {
   }
 
   const address = account.address.toString()
+  const visibleReports = activeFilter === 'uploaded' ? uploadedReports : purchasedReports
+  const premiumUploads = uploadedReports.filter((r) => r.access === 'premium').length
+  const profileTabs = [
+    { value: 'uploaded' as const, label: `Uploaded files (${uploadedReports.length})` },
+    { value: 'purchased' as const, label: `Purchased (${purchasedReports.length})` },
+  ]
 
   return (
     <>
@@ -171,8 +191,8 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             { label: 'Uploads', value: uploadedReports.length },
-            { label: 'Free files', value: uploadedReports.filter((r) => r.access === 'free').length },
-            { label: 'Premium files', value: uploadedReports.filter((r) => r.access === 'premium').length },
+            { label: 'Purchased', value: purchasedReports.length },
+            { label: 'Premium uploads', value: premiumUploads },
           ].map((stat, i) => (
             <div
               key={stat.label}
@@ -185,38 +205,61 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Uploaded files */}
+        {/* Files */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-text-primary">Uploaded Files</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-1 rounded-lg border border-divider bg-surface p-1">
+              {profileTabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  onClick={() => setActiveFilter(tab.value)}
+                  aria-pressed={activeFilter === tab.value}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    activeFilter === tab.value
+                      ? 'bg-pink-light text-pink border border-pink/20'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
             <button
               onClick={() => setUploadOpen(true)}
-              className="flex items-center gap-1 text-xs text-pink hover:underline"
+              className="inline-flex items-center gap-2 rounded-lg bg-pink px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-pink/20 transition-all duration-150 hover:opacity-90 active:scale-95"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              Upload new
+              Upload File
             </button>
           </div>
 
-          {uploadedReports.length === 0 ? (
+          {visibleReports.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 border border-dashed border-divider rounded-xl">
               <svg className="w-10 h-10 text-divider" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-              <p className="text-sm text-text-muted">No files uploaded yet</p>
-              <button onClick={() => setUploadOpen(true)} className="text-xs text-pink hover:underline">Upload your first file</button>
+              <p className="text-sm text-text-muted">
+                {activeFilter === 'uploaded' ? 'No files uploaded yet' : 'No purchased files yet'}
+              </p>
+              {activeFilter === 'uploaded' ? (
+                <button onClick={() => setUploadOpen(true)} className="text-xs text-pink hover:underline">Upload your first file</button>
+              ) : (
+                <Link href="/reports" className="text-xs text-pink hover:underline">Browse paid reports</Link>
+              )}
             </div>
           ) : (
             <div className="flex flex-col divide-y divide-divider border border-divider rounded-xl overflow-hidden">
-              {uploadedReports.map((report) => (
+              {visibleReports.map((report) => (
                 <div key={report.id} className="flex items-center gap-3 px-4 py-3 bg-background hover:bg-surface transition-colors">
                   <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-pink-light text-pink uppercase">
                     {FILE_TYPE_LABELS[report.fileType] ?? report.fileType}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-primary truncate">{report.title}</p>
+                    <Link href={`/reports/${encodeURIComponent(report.id)}`} className="text-sm font-medium text-text-primary truncate hover:text-pink">
+                      {report.title}
+                    </Link>
                     <p className="text-xs text-text-muted truncate">{report.description}</p>
                   </div>
                   <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full ${
@@ -249,26 +292,30 @@ export default function ProfilePage() {
                   </button>
 
                   {/* Edit */}
-                  <button
-                    onClick={() => openEdit(report)}
-                    className="shrink-0 flex items-center gap-1 text-xs text-text-muted hover:text-pink transition-colors px-2 py-1 rounded hover:bg-pink-light"
-                    title="Edit"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                    </svg>
-                  </button>
+                  {activeFilter === 'uploaded' && (
+                    <button
+                      onClick={() => openEdit(report)}
+                      className="shrink-0 flex items-center gap-1 text-xs text-text-muted hover:text-pink transition-colors px-2 py-1 rounded hover:bg-pink-light"
+                      title="Edit"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                      </svg>
+                    </button>
+                  )}
 
                   {/* Delete */}
-                  <button
-                    onClick={() => { setDeleteTarget(report); setDeleteError(null) }}
-                    className="shrink-0 flex items-center gap-1 text-xs text-text-muted hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-red-500/10"
-                    title="Deactivate"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                    </svg>
-                  </button>
+                  {activeFilter === 'uploaded' && (
+                    <button
+                      onClick={() => { setDeleteTarget(report); setDeleteError(null) }}
+                      className="shrink-0 flex items-center gap-1 text-xs text-text-muted hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-red-500/10"
+                      title="Deactivate"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

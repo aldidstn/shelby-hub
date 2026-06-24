@@ -7,7 +7,6 @@ import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { FilterBar, type Filters } from '@/features/reports/components/FilterBar'
 import { ReportCard } from '@/features/reports/components/ReportCard'
 import { PurchaseModal } from '@/features/purchases/components/PurchaseModal'
-import { UploadModal } from '@/features/reports/components/UploadModal'
 import { type Report } from '@/features/reports/types/report'
 import { fetchReports } from '@/features/reports/services/api'
 import { useWalletSession } from '@/features/auth/useWalletSession'
@@ -31,7 +30,6 @@ function ReportsPageInner() {
     sortBy: 'latest',
   })
   const [page, setPage]         = useState(1)
-  const [uploadOpen, setUploadOpen] = useState(false)
   const [buyTarget, setBuyTarget]   = useState<Report | null>(null)
   const [purchasedIds, setPurchasedIds] = useState<Set<string>>(new Set())
 
@@ -41,16 +39,13 @@ function ReportsPageInner() {
   const [apiAvailable, setApiAvailable] = useState(false)
   const [catalogError, setCatalogError] = useState<string | null>(null)
 
-  // Optimistic: reports just uploaded this session (visible instantly)
-  const [localReports, setLocalReports] = useState<Report[]>([])
-
-  const loadRegistry = useCallback(async () => {
+  const loadRegistry = useCallback(async (mine = false) => {
     setRegistryLoading(true)
     setCatalogError(null)
     try {
-      const reports = await fetchReports()
+      const reports = await fetchReports(mine)
       setRegistryReports(reports)
-      setPurchasedIds(new Set(reports.filter((report) => report.purchased || report.owned).map((report) => report.id)))
+      setPurchasedIds(new Set(reports.filter((report) => report.purchased).map((report) => report.id)))
       setApiAvailable(true)
     } catch (error) {
       setApiAvailable(false)
@@ -60,27 +55,18 @@ function ReportsPageInner() {
     }
   }, [])
 
-  useEffect(() => { loadRegistry() }, [loadRegistry])
+  useEffect(() => { loadRegistry(false) }, [loadRegistry])
 
   useEffect(() => {
     if (!connected) return
-    authenticate().then(loadRegistry).catch(() => undefined)
+    authenticate().then(() => loadRegistry(false)).catch(() => undefined)
   }, [connected, authenticate, loadRegistry])
 
   // Reset page on search/filter change
   useEffect(() => { setPage(1) }, [urlQuery])
 
-  // All reports: optimistic uploads first, then live registry/indexed data.
-  // Never show sample data as if it were a live catalog.
-  const allReports = useMemo(() => {
-    if (apiAvailable) {
-      // Deduplicate: local reports take precedence (same blobName key)
-      const registryIds = new Set(registryReports.map((r) => r.id))
-      const deduped = localReports.filter((r) => !registryIds.has(r.id))
-      return [...deduped, ...registryReports]
-    }
-    return localReports
-  }, [registryReports, localReports, apiAvailable])
+  // All reports come from the live API/registry projection. Uploading belongs in Profile.
+  const allReports = useMemo(() => apiAvailable ? registryReports : [], [registryReports, apiAvailable])
 
   const filtered = useMemo(() => {
     let result = [...allReports]
@@ -97,7 +83,9 @@ function ReportsPageInner() {
       )
     }
 
-    if (filters.access !== 'All') {
+    if (filters.access === 'purchased') {
+      result = result.filter((r) => r.purchased || purchasedIds.has(r.id))
+    } else if (filters.access !== 'All') {
       result = result.filter((r) => r.access === filters.access)
     }
 
@@ -121,10 +109,11 @@ function ReportsPageInner() {
     }
 
     return result
-  }, [filters, allReports, urlQuery])
+  }, [filters, allReports, purchasedIds, urlQuery])
 
   const freeCount    = allReports.filter((r) => r.access === 'free').length
   const premiumCount = allReports.filter((r) => r.access === 'premium').length
+  const purchasedCount = allReports.filter((r) => r.purchased || purchasedIds.has(r.id)).length
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages)
@@ -133,11 +122,6 @@ function ReportsPageInner() {
   function handleFiltersChange(next: Filters) {
     setFilters(next)
     setPage(1)
-  }
-
-  function handleUploadComplete(report: Report) {
-    // Show immediately (optimistic), registry re-fetch will pick it up next load
-    setLocalReports((prev) => [report, ...prev])
   }
 
   function handlePurchaseComplete(report: Report) {
@@ -159,19 +143,6 @@ function ReportsPageInner() {
             Research, analysis, and documents from the Shelby community
           </p>
         </div>
-        <button
-          onClick={() => setUploadOpen(true)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium active:scale-95 transition-all duration-150 ${
-            connected
-              ? 'bg-pink text-white hover:opacity-90 active:opacity-80'
-              : 'bg-pink-light text-pink border border-pink/30 hover:bg-pink/20'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-          </svg>
-          Upload File
-        </button>
       </div>
 
       {/* Filter bar */}
@@ -181,11 +152,12 @@ function ReportsPageInner() {
         totalCount={allReports.length}
         freeCount={freeCount}
         premiumCount={premiumCount}
+        purchasedCount={purchasedCount}
       />
 
       {catalogError && (
         <div role="status" className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-xs text-text-secondary">
-          Live catalog unavailable: {catalogError}. Showing only reports uploaded in this browser session.
+          Live catalog unavailable: {catalogError}. Showing the reports that can be fetched from the current registry/API source.
         </div>
       )}
 
@@ -297,13 +269,6 @@ function ReportsPageInner() {
         onPurchaseComplete={handlePurchaseComplete}
       />}
 
-      {/* Upload modal */}
-      {uploadOpen && (
-        <UploadModal
-          onClose={() => setUploadOpen(false)}
-          onUploadComplete={handleUploadComplete}
-        />
-      )}
     </div>
   )
 }
