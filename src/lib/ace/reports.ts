@@ -1,4 +1,5 @@
 import * as ACE from '@aptos-labs/ace-sdk'
+import { AccountAddress, type PublicKey, type Signature } from '@aptos-labs/ts-sdk'
 import { getAceConfig, getAceReportModule } from '@/lib/ace/config'
 
 const encoder = new TextEncoder()
@@ -35,4 +36,34 @@ export async function createAceReportDecryptionSession(input: { reportId: string
     label: reportLabel(input.reportId),
     ciphertext: input.ciphertext,
   })
+}
+
+export async function decryptReportWithAce(input: {
+  reportId: string
+  ciphertext: Uint8Array
+  accountAddress: string
+  publicKey: PublicKey
+  signMessage: (message: { address?: boolean; application?: boolean; chainId?: boolean; message: string; nonce: string }) => Promise<{
+    fullMessage: string
+    signature: Signature
+  }>
+}) {
+  const session = await createAceReportDecryptionSession({
+    reportId: input.reportId,
+    ciphertext: input.ciphertext,
+  })
+  const message = await session.getRequestToSign()
+  const signed = await input.signMessage({
+    address: true,
+    application: true,
+    chainId: true,
+    message,
+    nonce: crypto.randomUUID(),
+  })
+  return (await session.decryptWithProof({
+    userAddr: AccountAddress.fromString(input.accountAddress),
+    publicKey: input.publicKey,
+    signature: signed.signature,
+    fullMessage: signed.fullMessage,
+  })).unwrapOrThrow('ACE decrypt failed')
 }

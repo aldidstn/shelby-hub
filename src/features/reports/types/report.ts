@@ -24,7 +24,7 @@ export interface Report {
   blobAccount?: string
   blobName?: string
   network?: ShelbyNetwork
-  encryptionVersion?: 'aes-256-gcm-v1'
+  encryptionVersion?: 'aes-256-gcm-v1' | 'ace-ibe-v1'
   encryptionIv?: string
   cipherHash?: string
   purchased?: boolean

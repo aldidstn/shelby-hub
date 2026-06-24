@@ -1,4 +1,5 @@
 import type { Report } from '../types/report'
+import { aptos, normalizeAddress } from '@/lib/aptos/client'
 
 const ADDRESS = process.env.NEXT_PUBLIC_REGISTRY_V2_ADDRESS ?? ''
 const LEGACY_ADDRESS = process.env.NEXT_PUBLIC_REGISTRY_ADDRESS ?? ''
@@ -17,6 +18,45 @@ export function registerReportPayload(input: {
     ADDRESS, input.id, input.blobName, input.network, input.title, input.description, input.reportType,
     input.access, input.priceOctas, input.fileType, input.tags, input.cipherHash ?? '', input.encryptionVersion ?? 0,
   ] }
+}
+
+export async function verifyReportRegistration(input: {
+  transactionHash: string
+  reportId: string
+  ownerAddress: string
+  blobName: string
+  access: Report['access']
+  priceOctas: number
+  cipherHash?: string
+  encryptionVersion: number
+}) {
+  if (!ADDRESS) throw new Error('Registry V2 is not configured')
+  const transaction = await aptos.waitForTransaction({ transactionHash: input.transactionHash })
+  if (!('success' in transaction) || !transaction.success || !('events' in transaction)) {
+    throw new Error('Report registration transaction failed')
+  }
+  const eventType = `${normalizeAddress(ADDRESS)}::registry_v2::ReportRegistered`
+  const event = transaction.events.find((item) => item.type === eventType)
+  if (!event) throw new Error('Report registration event was not emitted')
+  const data = event.data as {
+    report_id?: string
+    owner?: string
+    blob_name?: string
+    access?: string
+    price?: string | number
+    cipher_hash?: string
+    encryption_version?: string | number
+  }
+  const matches =
+    data.report_id === input.reportId
+    && normalizeAddress(data.owner ?? '0x0') === normalizeAddress(input.ownerAddress)
+    && data.blob_name === input.blobName
+    && data.access === input.access
+    && Number(data.price ?? 0) === input.priceOctas
+    && (data.cipher_hash ?? '') === (input.cipherHash ?? '')
+    && Number(data.encryption_version ?? 0) === input.encryptionVersion
+
+  if (!matches) throw new Error('Report registration event does not match this upload')
 }
 
 export function updateReportPayload(report: Report, title: string, description: string) {

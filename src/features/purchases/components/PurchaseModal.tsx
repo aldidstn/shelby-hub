@@ -5,7 +5,7 @@ import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { type Report } from '@/features/reports/types/report'
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import { confirmPurchase } from '../services/api'
-import { purchaseReportPayload } from '../services/registry'
+import { purchaseReportPayload, verifyPurchaseTransaction } from '../services/registry'
 import layout from '@/styles/layout.module.css'
 
 type PurchaseState = 'idle' | 'confirm' | 'pending' | 'success' | 'error'
@@ -63,11 +63,18 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
     setErrorMsg(null)
 
     try {
-      await authenticate()
+      await authenticate().catch(() => undefined)
       const response = await signAndSubmitTransaction({
         data: purchaseReportPayload(report!.id),
       })
-      await confirmPurchase(report!.id, response.hash)
+      await verifyPurchaseTransaction({
+        transactionHash: response.hash,
+        reportId: report!.id,
+        buyerAddress: account.address.toString(),
+        sellerAddress: report!.authorAddress,
+        amountOctas: Math.round((report!.price ?? 0) * 1e8),
+      })
+      await confirmPurchase(report!.id, response.hash).catch(() => undefined)
       setTxHash(response.hash)
       setState('success')
       onPurchaseComplete?.(report!)

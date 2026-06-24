@@ -233,7 +233,7 @@ function ReportsPageInner() {
                 <ReportCard
                   key={report.id}
                   report={report}
-                  purchased={purchasedIds.has(report.id)}
+                  purchased={purchasedIds.has(report.id) || report.purchased || report.owned}
                   walletConnected={connected}
                   onBuy={(r) => setBuyTarget(r)}
                 />

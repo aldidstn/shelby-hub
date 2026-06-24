@@ -2,6 +2,7 @@ import { and, desc, eq, ilike, or } from 'drizzle-orm'
 import { getDb } from '@/server/db/client'
 import { purchases, reports } from '@/server/db/schema'
 import { findLegacyReport, listLegacyReports } from '@/server/reports/legacy-registry'
+import { findRegistryV2Report } from '@/server/reports/registry-v2'
 import type { Report } from '@/features/reports/types/report'
 
 export function toReport(row: typeof reports.$inferSelect, walletAddress?: string | null, purchased = false): Report {
@@ -56,11 +57,11 @@ export async function listReports(input: { query?: string; owner?: string; walle
 }
 
 export async function findReport(id: string, walletAddress?: string | null) {
-  if (!process.env.DATABASE_URL) return findLegacyReport(id)
+  if (!process.env.DATABASE_URL) return await findRegistryV2Report(id, walletAddress) ?? findLegacyReport(id)
 
   try {
     const [row] = await getDb().select().from(reports).where(eq(reports.id, id)).limit(1)
-    if (!row) return findLegacyReport(id)
+    if (!row) return await findRegistryV2Report(id, walletAddress) ?? findLegacyReport(id)
     let purchased = false
     if (walletAddress) {
       const [receipt] = await getDb().select({ id: purchases.id }).from(purchases).where(and(
@@ -71,6 +72,6 @@ export async function findReport(id: string, walletAddress?: string | null) {
     return toReport(row, walletAddress, purchased)
   } catch (error) {
     console.warn('Falling back to legacy registry report:', error)
-    return findLegacyReport(id)
+    return await findRegistryV2Report(id, walletAddress) ?? findLegacyReport(id)
   }
 }
