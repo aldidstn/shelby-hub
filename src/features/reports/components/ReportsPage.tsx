@@ -9,6 +9,7 @@ import { ReportCard } from '@/features/reports/components/ReportCard'
 import { PurchaseModal } from '@/features/purchases/components/PurchaseModal'
 import { type Report } from '@/features/reports/types/report'
 import { fetchReports } from '@/features/reports/services/api'
+import { listLocalReports, markLocalReportPurchased, mergeReportsWithLocal } from '@/features/reports/services/local-catalog'
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import layout from '@/styles/layout.module.css'
 
@@ -19,7 +20,7 @@ export default function ReportsPage() {
 function ReportsPageInner() {
   const searchParams = useSearchParams()
   const urlQuery     = searchParams.get('q') ?? ''
-  const { connected } = useWallet()
+  const { connected, account } = useWallet()
   const { authenticate } = useWalletSession()
 
   const PAGE_SIZE = 12
@@ -35,6 +36,7 @@ function ReportsPageInner() {
 
   // Reports from the on-chain registry
   const [registryReports, setRegistryReports] = useState<Report[]>([])
+  const [localReports, setLocalReports] = useState<Report[]>([])
   const [registryLoading, setRegistryLoading] = useState(true)
   const [apiAvailable, setApiAvailable] = useState(false)
   const [catalogError, setCatalogError] = useState<string | null>(null)
@@ -42,6 +44,8 @@ function ReportsPageInner() {
   const loadRegistry = useCallback(async (mine = false) => {
     setRegistryLoading(true)
     setCatalogError(null)
+    const walletAddress = account?.address?.toString()
+    setLocalReports(listLocalReports(walletAddress))
     try {
       const reports = await fetchReports(mine)
       setRegistryReports(reports)
@@ -53,7 +57,7 @@ function ReportsPageInner() {
     } finally {
       setRegistryLoading(false)
     }
-  }, [])
+  }, [account])
 
   useEffect(() => { loadRegistry(false) }, [loadRegistry])
 
@@ -66,7 +70,9 @@ function ReportsPageInner() {
   useEffect(() => { setPage(1) }, [urlQuery])
 
   // All reports come from the live API/registry projection. Uploading belongs in Profile.
-  const allReports = useMemo(() => apiAvailable ? registryReports : [], [registryReports, apiAvailable])
+  const allReports = useMemo(() => {
+    return mergeReportsWithLocal(apiAvailable ? registryReports : [], localReports)
+  }, [registryReports, localReports, apiAvailable])
 
   const filtered = useMemo(() => {
     let result = [...allReports]
@@ -125,6 +131,11 @@ function ReportsPageInner() {
   }
 
   function handlePurchaseComplete(report: Report) {
+    const walletAddress = account?.address?.toString()
+    if (walletAddress) {
+      markLocalReportPurchased(report, walletAddress)
+      setLocalReports(listLocalReports(walletAddress))
+    }
     setPurchasedIds((prev) => {
       const next = new Set(prev).add(report.id)
       return next

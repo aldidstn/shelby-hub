@@ -8,6 +8,7 @@ import { UploadModal } from '@/features/reports/components/UploadModal'
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import { fetchReports } from '@/features/reports/services/api'
 import { downloadReport } from '@/features/reports/services/download'
+import { listLocalReports, mergeReportsWithLocal, removeLocalReport, upsertLocalReport } from '@/features/reports/services/local-catalog'
 import { deactivateReportPayload, updateReportPayload } from '@/features/reports/services/registry'
 import layout from '@/styles/layout.module.css'
 
@@ -35,6 +36,7 @@ export default function ProfilePage() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -54,9 +56,10 @@ export default function ProfilePage() {
           // Profile reads are public catalog reads; write/delete actions still require wallet transactions.
           items = await fetchReports(false)
         }
+        const merged = mergeReportsWithLocal(items, listLocalReports(walletAddress))
         if (!cancelled) {
-          setUploadedReports(items.filter((report) => report.authorAddress.toLowerCase() === walletAddress))
-          setPurchasedReports(items.filter((report) => Boolean(report.purchased) && report.authorAddress.toLowerCase() !== walletAddress))
+          setUploadedReports(merged.filter((report) => report.authorAddress.toLowerCase() === walletAddress))
+          setPurchasedReports(merged.filter((report) => Boolean(report.purchased) && report.authorAddress.toLowerCase() !== walletAddress))
         }
       } catch (error) {
         if (!cancelled) {
@@ -95,6 +98,7 @@ export default function ProfilePage() {
     const updated = uploadedReports.map((r) =>
       r.id === editTarget.id ? { ...r, title: editTitle, description: editDesc } : r
     )
+    upsertLocalReport({ ...editTarget, title: editTitle, description: editDesc, owned: true }, account?.address.toString())
     setUploadedReports(updated)
     setEditTarget(null)
   }
@@ -106,6 +110,7 @@ export default function ProfilePage() {
     try {
       await signAndSubmitTransaction({ data: deactivateReportPayload(deleteTarget.id) })
       const updated = uploadedReports.filter((r) => r.id !== deleteTarget.id)
+      removeLocalReport(deleteTarget.id)
       setUploadedReports(updated)
       setDeleteTarget(null)
     } catch (err) {
@@ -117,12 +122,15 @@ export default function ProfilePage() {
 
   async function handleDownload(report: Report) {
     setDownloadingId(report.id)
+    setDownloadError(null)
     try {
       await downloadReport(report, report.encryptionVersion === 'ace-ibe-v1' && account?.publicKey ? {
         accountAddress: account.address.toString(),
         publicKey: account.publicKey,
         signMessage,
       } : undefined)
+    } catch (error) {
+      setDownloadError(error instanceof Error ? error.message : 'Download failed')
     } finally { setDownloadingId(null) }
   }
 
@@ -207,6 +215,11 @@ export default function ProfilePage() {
 
         {/* Files */}
         <div className="flex flex-col gap-3">
+          {downloadError && (
+            <div role="alert" className="rounded-lg border border-negative/30 bg-negative/10 px-4 py-3 text-xs text-text-secondary">
+              Download failed: {downloadError}
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-1 rounded-lg border border-divider bg-surface p-1">
               {profileTabs.map((tab) => (
