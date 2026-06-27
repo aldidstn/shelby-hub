@@ -54,5 +54,5 @@ export async function downloadReport(report: Report, aceSigner?: AceWalletSigner
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  URL.revokeObjectURL(objectUrl)
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000)
 }
