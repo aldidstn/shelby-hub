@@ -4,11 +4,29 @@ import { serializeSignInOutput } from '@aptos-labs/siwa'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { useCallback } from 'react'
 
+let databaseSessionSupport: boolean | null = null
+
+async function hasDatabaseBackedSessions() {
+  if (databaseSessionSupport !== null) return databaseSessionSupport
+  try {
+    const response = await fetch('/api/system/capabilities', { cache: 'no-store' })
+    const capabilities = await response.json() as { database?: { configured?: boolean } }
+    databaseSessionSupport = Boolean(capabilities.database?.configured)
+  } catch {
+    databaseSessionSupport = true
+  }
+  return databaseSessionSupport
+}
+
 export function useWalletSession() {
   const { account, wallet, signIn } = useWallet()
 
   const authenticate = useCallback(async () => {
     if (!account || !wallet) throw new Error('Connect your wallet first')
+    if (!await hasDatabaseBackedSessions()) {
+      throw new Error('Wallet sessions are disabled until PostgreSQL is configured. ACE report access still uses direct wallet signatures.')
+    }
+
     const currentResponse = await fetch('/api/auth/session', { cache: 'no-store' })
     if (currentResponse.ok) {
       const current = await currentResponse.json() as { authenticated: boolean; walletAddress: string | null }

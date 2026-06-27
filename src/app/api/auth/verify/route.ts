@@ -12,6 +12,10 @@ const bodySchema = z.object({ output: z.record(z.string(), z.unknown()) })
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.DATABASE_URL) {
+      throw new HttpError(503, 'Wallet sessions require DATABASE_URL to be configured')
+    }
+
     const { output } = bodySchema.parse(await request.json())
     const decoded = await deserializeSignInOutput(output as SerializedAptosSignInOutput)
     const nonce = decoded.input.nonce

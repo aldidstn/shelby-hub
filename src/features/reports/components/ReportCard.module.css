@@ -41,5 +41,10 @@
 .primaryButton:hover { opacity:.9; }
 .primaryButton:active { transform:scale(.95); }
 .primaryButton:disabled { opacity:.4; cursor:not-allowed; }
+.errorMessage {
+  color: var(--negative);
+  font-size: .75rem;
+  line-height: 1.5;
+}
 .icon { width:.875rem; height:.875rem; }
 @media (prefers-reduced-motion:reduce) { .card,.primaryButton { transition:none; } .card:hover { transform:none; } }

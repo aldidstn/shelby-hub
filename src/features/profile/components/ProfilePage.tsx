@@ -7,7 +7,7 @@ import { type Report } from '@/features/reports/types/report'
 import { UploadModal } from '@/features/reports/components/UploadModal'
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import { fetchReports } from '@/features/reports/services/api'
-import { downloadReport } from '@/features/reports/services/download'
+import { downloadErrorMessage, downloadReport } from '@/features/reports/services/download'
 import { listLocalReports, mergeReportsWithLocal, removeLocalReport, upsertLocalReport } from '@/features/reports/services/local-catalog'
 import { deactivateReportPayload, updateReportPayload } from '@/features/reports/services/registry'
 import layout from '@/styles/layout.module.css'
@@ -130,7 +130,7 @@ export default function ProfilePage() {
         signMessage,
       } : undefined)
     } catch (error) {
-      setDownloadError(error instanceof Error ? error.message : 'Download failed')
+      setDownloadError(downloadErrorMessage(error))
     } finally { setDownloadingId(null) }
   }
 

@@ -63,11 +63,23 @@ export async function decryptReportWithAce(input: {
     signature: Signature
   }>
 }) {
-  const session = await createAceReportDecryptionSession({
-    reportId: input.reportId,
-    ciphertext: input.ciphertext,
-  })
-  const message = await session.getRequestToSign()
+  let session: Awaited<ReturnType<typeof createAceReportDecryptionSession>>
+  try {
+    session = await createAceReportDecryptionSession({
+      reportId: input.reportId,
+      ciphertext: input.ciphertext,
+    })
+  } catch (error) {
+    throw new Error(`ACE decrypt session failed: ${errorMessage(error)}`)
+  }
+
+  let message: string
+  try {
+    message = await session.getRequestToSign()
+  } catch (error) {
+    throw new Error(`ACE decrypt request failed: ${errorMessage(error)}`)
+  }
+
   let signed: Awaited<ReturnType<typeof input.signMessage>>
   try {
     signed = await input.signMessage({
@@ -80,12 +92,19 @@ export async function decryptReportWithAce(input: {
   } catch (error) {
     throw new Error(`Wallet signature failed: ${errorMessage(error)}`)
   }
-  const result = await session.decryptWithProof({
-    userAddr: AccountAddress.fromString(input.accountAddress),
-    publicKey: input.publicKey,
-    signature: signed.signature,
-    fullMessage: signed.fullMessage,
-  })
+
+  let result: Awaited<ReturnType<typeof session.decryptWithProof>>
+  try {
+    result = await session.decryptWithProof({
+      userAddr: AccountAddress.fromString(input.accountAddress),
+      publicKey: input.publicKey,
+      signature: signed.signature,
+      fullMessage: signed.fullMessage,
+    })
+  } catch (error) {
+    throw new Error(`ACE decrypt failed: ${errorMessage(error)}`)
+  }
+
   const plaintext = result.okValue
   if (!result.isOk || !plaintext) throwAceResultError('ACE decrypt failed', result)
   return plaintext

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { downloadShelbyBlob, type DownloadStatus } from '../services/shelby-download'
 import type { Report } from '../types/report'
-import { downloadReport, type AceWalletSigner } from '@/features/reports/services/download'
+import { downloadErrorMessage, downloadReport, type AceWalletSigner } from '@/features/reports/services/download'
 
 interface ReaderActionsProps {
   initialLikes: number
@@ -55,7 +55,7 @@ export function ReaderActions({
         setDownloadStatus('success')
         setTimeout(() => setDownloadStatus('idle'), 3000)
       } catch (error) {
-        setErrorMsg(error instanceof Error ? error.message : 'Download failed.')
+        setErrorMsg(downloadErrorMessage(error))
         setDownloadStatus('error')
       }
       return

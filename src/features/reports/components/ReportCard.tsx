@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { type Report } from '../types/report'
-import { downloadReport } from '@/features/reports/services/download'
+import { downloadErrorMessage, downloadReport } from '@/features/reports/services/download'
 import styles from './ReportCard.module.css'
 
 const FILE_TYPE_COLORS: Record<string, string> = {
@@ -33,6 +33,7 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
   const { account, signMessage } = useWallet()
   const [copied, setCopied]         = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
 
   const hasBlobFile = Boolean(report.blobAccount && report.blobName)
   const isOwned = Boolean(report.owned)
@@ -51,12 +52,15 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
   async function handleDownload() {
     if (!report.blobAccount || !report.blobName) return
     setDownloading(true)
+    setDownloadError(null)
     try {
       await downloadReport(report, report.encryptionVersion === 'ace-ibe-v1' && account?.publicKey ? {
         accountAddress: account.address.toString(),
         publicKey: account.publicKey,
         signMessage,
       } : undefined)
+    } catch (error) {
+      setDownloadError(downloadErrorMessage(error))
     } finally { setDownloading(false) }
   }
 
@@ -194,6 +198,7 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
 
         </div>
       </div>
+      {downloadError && <p className={styles.errorMessage}>{downloadError}</p>}
     </div>
   )
 }
