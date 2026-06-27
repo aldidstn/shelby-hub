@@ -9,6 +9,17 @@ const MIME_TYPES: Partial<Record<Report['fileType'], string>> = {
   mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
 }
 
+export function downloadErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'string' && error.trim()) return error
+  try {
+    const serialized = JSON.stringify(error)
+    return serialized && serialized !== 'null' ? serialized : 'Download failed'
+  } catch {
+    return 'Download failed'
+  }
+}
+
 export type AceWalletSigner = {
   accountAddress: string
   publicKey: PublicKey
@@ -46,13 +57,17 @@ export async function fetchReportBlob(report: Report, aceSigner?: AceWalletSigne
 }
 
 export async function downloadReport(report: Report, aceSigner?: AceWalletSigner) {
-  const blob = await fetchReportBlob(report, aceSigner)
-  const objectUrl = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = objectUrl
-  anchor.download = `${report.title.toLowerCase().replace(/\s+/g, '-')}.${report.fileType}`
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000)
+  try {
+    const blob = await fetchReportBlob(report, aceSigner)
+    const objectUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = objectUrl
+    anchor.download = `${report.title.toLowerCase().replace(/\s+/g, '-')}.${report.fileType}`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000)
+  } catch (error) {
+    throw new Error(downloadErrorMessage(error))
+  }
 }
