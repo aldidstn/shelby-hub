@@ -2,13 +2,18 @@ import * as ACE from '@aptos-labs/ace-sdk'
 import {
   AccountAddress,
   AnyPublicKey,
+  AnySignature,
   Deserializer,
   Ed25519PublicKey,
+  Ed25519Signature,
   FederatedKeylessPublicKey,
   Hex,
   KeylessPublicKey,
+  KeylessSignature,
   MultiEd25519PublicKey,
+  MultiEd25519Signature,
   MultiKey,
+  MultiKeySignature,
   type PublicKey,
   type Signature,
 } from '@aptos-labs/ts-sdk'
@@ -41,13 +46,21 @@ function isAceSupportedPublicKey(value: unknown): value is PublicKey {
     || value instanceof FederatedKeylessPublicKey
 }
 
+function isAceSupportedSignature(value: unknown): value is Signature {
+  return value instanceof Ed25519Signature
+    || value instanceof AnySignature
+    || value instanceof MultiEd25519Signature
+    || value instanceof MultiKeySignature
+    || value instanceof KeylessSignature
+}
+
 function bytesFromHex(value: string) {
   const hex = value.startsWith('0x') ? value : `0x${value}`
   if (!Hex.isValid(hex).valid) return null
   return Hex.fromHexInput(hex).toUint8Array()
 }
 
-function publicKeyBytes(value: unknown): Uint8Array | null {
+function bytesFromUnknown(value: unknown): Uint8Array | null {
   if (value instanceof Uint8Array) return value
   if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
   if (Array.isArray(value) && value.every((item) => Number.isInteger(item) && item >= 0 && item <= 255)) {
@@ -58,13 +71,15 @@ function publicKeyBytes(value: unknown): Uint8Array | null {
   }
 
   const candidate = value as {
+    bcsToBytes?: () => Uint8Array
     bcsToHex?: () => { toString: () => string } | string
     toUint8Array?: () => Uint8Array
     toString?: () => string
   }
 
-  if (typeof candidate.toUint8Array === 'function') return candidate.toUint8Array()
+  if (typeof candidate.bcsToBytes === 'function') return candidate.bcsToBytes()
   if (typeof candidate.bcsToHex === 'function') return bytesFromHex(String(candidate.bcsToHex()))
+  if (typeof candidate.toUint8Array === 'function') return candidate.toUint8Array()
   if (typeof candidate.toString === 'function') {
     const text = candidate.toString()
     if (text !== '[object Object]') return bytesFromHex(text)
@@ -72,6 +87,14 @@ function publicKeyBytes(value: unknown): Uint8Array | null {
 
   return null
 }
+
+const signatureDeserializers = [
+  AnySignature.deserialize,
+  Ed25519Signature.deserialize,
+  MultiEd25519Signature.deserialize,
+  MultiKeySignature.deserialize,
+  KeylessSignature.deserialize,
+]
 
 function deserializePublicKey(bytes: Uint8Array): PublicKey | null {
   if (bytes.length === Ed25519PublicKey.LENGTH) return new Ed25519PublicKey(bytes)
@@ -91,6 +114,17 @@ function deserializePublicKey(bytes: Uint8Array): PublicKey | null {
   return null
 }
 
+function deserializeSignature(bytes: Uint8Array): Signature | null {
+  if (bytes.length === Ed25519Signature.LENGTH) return new Ed25519Signature(bytes)
+
+  for (const deserialize of signatureDeserializers) {
+    try { return deserialize(new Deserializer(bytes)) as Signature }
+    catch { /* try the next supported signature format */ }
+  }
+
+  return null
+}
+
 export function normalizeAcePublicKey(value: unknown): PublicKey {
   if (isAceSupportedPublicKey(value)) return value
 
@@ -99,11 +133,26 @@ export function normalizeAcePublicKey(value: unknown): PublicKey {
     : null
   if (nested) return nested
 
-  const bytes = publicKeyBytes(value)
+  const bytes = bytesFromUnknown(value)
   const publicKey = bytes ? deserializePublicKey(bytes) : null
   if (publicKey) return publicKey
 
   throw new Error('Wallet public key type is not supported by ACE')
+}
+
+export function normalizeAceSignature(value: unknown): Signature {
+  if (isAceSupportedSignature(value)) return value
+
+  const nested = value && typeof value === 'object' && 'signature' in value
+    ? normalizeAceSignature((value as { signature: unknown }).signature)
+    : null
+  if (nested) return nested
+
+  const bytes = bytesFromUnknown(value)
+  const signature = bytes ? deserializeSignature(bytes) : null
+  if (signature) return signature
+
+  throw new Error('Wallet signature type is not supported by ACE')
 }
 
 export async function encryptReportWithAce(input: { reportId: string; plaintext: Uint8Array }) {
@@ -184,7 +233,7 @@ export async function decryptReportWithAce(input: {
     result = await session.decryptWithProof({
       userAddr: AccountAddress.fromString(input.accountAddress),
       publicKey: normalizeAcePublicKey(input.publicKey),
-      signature: signed.signature,
+      signature: normalizeAceSignature(signed.signature),
       fullMessage: signed.fullMessage,
     })
   } catch (error) {
