@@ -1,5 +1,17 @@
 import * as ACE from '@aptos-labs/ace-sdk'
-import { AccountAddress, type PublicKey, type Signature } from '@aptos-labs/ts-sdk'
+import {
+  AccountAddress,
+  AnyPublicKey,
+  Deserializer,
+  Ed25519PublicKey,
+  FederatedKeylessPublicKey,
+  Hex,
+  KeylessPublicKey,
+  MultiEd25519PublicKey,
+  MultiKey,
+  type PublicKey,
+  type Signature,
+} from '@aptos-labs/ts-sdk'
 import { getAceConfig, getAceReportModule } from '@/lib/ace/config'
 
 const encoder = new TextEncoder()
@@ -18,6 +30,80 @@ function errorMessage(value: unknown) {
 function throwAceResultError(prefix: string, result: { errValue?: unknown; extra?: unknown }): never {
   const detail = errorMessage(result.errValue ?? result.extra)
   throw new Error(detail && detail !== 'undefined' ? `${prefix}: ${detail}` : prefix)
+}
+
+function isAceSupportedPublicKey(value: unknown): value is PublicKey {
+  return value instanceof Ed25519PublicKey
+    || value instanceof AnyPublicKey
+    || value instanceof MultiEd25519PublicKey
+    || value instanceof MultiKey
+    || value instanceof KeylessPublicKey
+    || value instanceof FederatedKeylessPublicKey
+}
+
+function bytesFromHex(value: string) {
+  const hex = value.startsWith('0x') ? value : `0x${value}`
+  if (!Hex.isValid(hex).valid) return null
+  return Hex.fromHexInput(hex).toUint8Array()
+}
+
+function publicKeyBytes(value: unknown): Uint8Array | null {
+  if (value instanceof Uint8Array) return value
+  if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+  if (Array.isArray(value) && value.every((item) => Number.isInteger(item) && item >= 0 && item <= 255)) {
+    return new Uint8Array(value)
+  }
+  if (!value || typeof value !== 'object') {
+    return typeof value === 'string' ? bytesFromHex(value) : null
+  }
+
+  const candidate = value as {
+    bcsToHex?: () => { toString: () => string } | string
+    toUint8Array?: () => Uint8Array
+    toString?: () => string
+  }
+
+  if (typeof candidate.toUint8Array === 'function') return candidate.toUint8Array()
+  if (typeof candidate.bcsToHex === 'function') return bytesFromHex(String(candidate.bcsToHex()))
+  if (typeof candidate.toString === 'function') {
+    const text = candidate.toString()
+    if (text !== '[object Object]') return bytesFromHex(text)
+  }
+
+  return null
+}
+
+function deserializePublicKey(bytes: Uint8Array): PublicKey | null {
+  if (bytes.length === Ed25519PublicKey.LENGTH) return new Ed25519PublicKey(bytes)
+
+  for (const deserialize of [
+    AnyPublicKey.deserialize,
+    Ed25519PublicKey.deserialize,
+    MultiEd25519PublicKey.deserialize,
+    MultiKey.deserialize,
+    KeylessPublicKey.deserialize,
+    FederatedKeylessPublicKey.deserialize,
+  ]) {
+    try { return deserialize(new Deserializer(bytes)) as PublicKey }
+    catch { /* try the next supported key format */ }
+  }
+
+  return null
+}
+
+export function normalizeAcePublicKey(value: unknown): PublicKey {
+  if (isAceSupportedPublicKey(value)) return value
+
+  const nested = value && typeof value === 'object' && 'publicKey' in value
+    ? normalizeAcePublicKey((value as { publicKey: unknown }).publicKey)
+    : null
+  if (nested) return nested
+
+  const bytes = publicKeyBytes(value)
+  const publicKey = bytes ? deserializePublicKey(bytes) : null
+  if (publicKey) return publicKey
+
+  throw new Error('Wallet public key type is not supported by ACE')
 }
 
 export async function encryptReportWithAce(input: { reportId: string; plaintext: Uint8Array }) {
@@ -97,7 +183,7 @@ export async function decryptReportWithAce(input: {
   try {
     result = await session.decryptWithProof({
       userAddr: AccountAddress.fromString(input.accountAddress),
-      publicKey: input.publicKey,
+      publicKey: normalizeAcePublicKey(input.publicKey),
       signature: signed.signature,
       fullMessage: signed.fullMessage,
     })
