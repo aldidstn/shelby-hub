@@ -51,9 +51,8 @@ const MARQUEE_ITEMS = [
 
 function Brand() {
   return (
-    <Link href="/" className={styles.brand} aria-label="Shelby Research home">
-      <span className={styles.brandMark}>S</span>
-      <span><strong>Shelby</strong><small>Research</small></span>
+    <Link href="/" className={styles.brand} aria-label="Shelby Hub home">
+      <Image src="/images/shelby-logo-pink.svg" alt="Shelby Hub" width={172} height={40} className={styles.brandLogo} priority />
     </Link>
   )
 }

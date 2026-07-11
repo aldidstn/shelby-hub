@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
@@ -35,9 +36,8 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
     {open && <button className={styles.overlay} onClick={onClose} aria-label="Close navigation" />}
     <aside className={`${styles.sidebar} ${open ? styles.open : ''}`}>
       <div className={styles.brandRow}>
-        <Link href="/reports" className={styles.brand} onClick={onClose}>
-          <span className={styles.brandMark}>S</span>
-          <span><strong>Shelby</strong><small>Research</small></span>
+        <Link href="/reports" className={styles.brand} onClick={onClose} aria-label="Shelby Hub reports">
+          <Image src="/images/shelby-logo-pink.svg" alt="Shelby Hub" width={172} height={40} className={styles.brandLogo} priority />
         </Link>
         <button className={styles.mobileClose} onClick={onClose} aria-label="Close menu">×</button>
       </div>

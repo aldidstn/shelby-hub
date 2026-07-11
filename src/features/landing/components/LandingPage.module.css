@@ -41,11 +41,8 @@
   animation: headerEnter .5s .08s cubic-bezier(.22, 1, .36, 1) both;
 }
 
-.brand { display: flex; align-items: center; gap: .7rem; width: max-content; color: var(--text-primary); }
-.brandMark { width: 2.35rem; height: 2.35rem; display: grid; place-items: center; border-radius: .78rem; background: var(--brand-pink); color: #fff7fb; font: 750 1rem var(--font-display); box-shadow: 0 10px 25px color-mix(in srgb, var(--brand-pink) 28%, transparent), inset 0 1px 0 rgb(255 255 255 / .35); }
-.brand strong,.brand small { display: block; line-height: 1.05; }
-.brand strong { font-family: var(--font-display); font-size: .98rem; }
-.brand small { margin-top: .18rem; color: var(--text-muted); font-size: var(--type-caption); letter-spacing: .08em; text-transform: uppercase; }
+.brand { display: flex; align-items: center; width: max-content; color: var(--text-primary); }
+.brandLogo { display: block; width: clamp(9.1rem, 12vw, 10.75rem); height: auto; }
 .siteHeader > .brand { min-height: 2.75rem; }
 
 .nav { display: flex; align-items: center; gap: clamp(1rem, 2.4vw, 2rem); }
