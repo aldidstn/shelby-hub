@@ -22,8 +22,16 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Shelby Research — On-chain intelligence",
+  title: "Shelby Scribe",
   description: "Independent research and market intelligence, secured on Aptos.",
+  icons: {
+    icon: [
+      { url: "/images/shelby-icon-on-light.svg", type: "image/svg+xml" },
+      { url: "/images/shelby-icon-on-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
+      { url: "/images/shelby-icon-on-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
+    ],
+    shortcut: [{ url: "/images/shelby-icon-on-light.svg", type: "image/svg+xml" }],
+  },
 };
 
 const themeScript = `(function(){try{var t=localStorage.getItem('shelby-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='dark'}})()`;

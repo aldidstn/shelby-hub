@@ -42,7 +42,7 @@
 }
 
 .brand { display: flex; align-items: center; width: max-content; color: var(--text-primary); }
-.brandLogo { display: block; width: clamp(9.1rem, 12vw, 10.75rem); height: auto; }
+.brandLogo { display: block; width: clamp(9.1rem, 12vw, 10.75rem); height: auto; filter: drop-shadow(0 1px 0 rgb(255 255 255 / .88)) drop-shadow(0 0 14px rgb(255 255 255 / .44)); }
 .siteHeader > .brand { min-height: 2.75rem; }
 
 .nav { display: flex; align-items: center; gap: clamp(1rem, 2.4vw, 2rem); }
