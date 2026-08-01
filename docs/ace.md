@@ -26,7 +26,7 @@ For testing with Aptos Labs' public ACE preview:
 
 ```txt
 NEXT_PUBLIC_REGISTRY_V2_ADDRESS=0x...
-NEXT_PUBLIC_ACE_APP_ORIGIN=https://shelby-hub-iota.vercel.app
+NEXT_PUBLIC_ACE_APP_ORIGIN=https://shelbyscribe.vercel.app
 NEXT_PUBLIC_ACE_DEPLOYMENT_NAME=preview20260610
 ```
 
@@ -34,7 +34,7 @@ For a self-managed ACE deployment:
 
 ```txt
 NEXT_PUBLIC_REGISTRY_V2_ADDRESS=0x...
-NEXT_PUBLIC_ACE_APP_ORIGIN=https://shelby-hub-iota.vercel.app
+NEXT_PUBLIC_ACE_APP_ORIGIN=https://shelbyscribe.vercel.app
 NEXT_PUBLIC_ACE_API_ENDPOINT=https://...
 NEXT_PUBLIC_ACE_CONTRACT_ADDRESS=0x...
 NEXT_PUBLIC_ACE_KEYPAIR_ID=0x...
@@ -47,7 +47,7 @@ The Registry V2 contract must also be published and initialized, then its ACE or
 ```bash
 aptos move publish --package-dir contract --named-addresses shelby_registry=YOUR_REGISTRY_ADDRESS
 aptos move run --function-id YOUR_REGISTRY_ADDRESS::registry_v2::initialize
-aptos move run --function-id YOUR_REGISTRY_ADDRESS::registry_v2::update_ace_origin --args string:https://shelby-hub-iota.vercel.app
+aptos move run --function-id YOUR_REGISTRY_ADDRESS::registry_v2::update_ace_origin --args string:https://shelbyscribe.vercel.app
 ```
 
 ## Remaining work

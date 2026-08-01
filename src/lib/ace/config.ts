@@ -15,7 +15,7 @@ export function isAceConfigured() {
 }
 
 export function getAceAppOrigin() {
-  return process.env.NEXT_PUBLIC_ACE_APP_ORIGIN ?? 'https://shelby-hub-iota.vercel.app'
+  return process.env.NEXT_PUBLIC_ACE_APP_ORIGIN ?? 'https://shelbyscribe.vercel.app'
 }
 
 export function getAceReportModule() {

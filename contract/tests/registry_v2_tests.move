@@ -78,10 +78,10 @@ module shelby_registry::registry_v2_tests {
         register_premium(&owner);
 
         assert!(registry_v2::on_ace_decryption_request(
-            b"premium-1", @0xcafe, string::utf8(b"https://shelby-hub-iota.vercel.app"),
+            b"premium-1", @0xcafe, string::utf8(b"https://shelbyscribe.vercel.app"),
         ), 10);
         assert!(!registry_v2::on_ace_decryption_request(
-            b"premium-1", @0xbeef, string::utf8(b"https://shelby-hub-iota.vercel.app"),
+            b"premium-1", @0xbeef, string::utf8(b"https://shelbyscribe.vercel.app"),
         ), 11);
         assert!(!registry_v2::on_ace_decryption_request(
             b"premium-1", @0xcafe, string::utf8(b"https://evil.example"),
@@ -89,7 +89,7 @@ module shelby_registry::registry_v2_tests {
 
         registry_v2::purchase_report(&buyer, @shelby_registry, string::utf8(b"premium-1"));
         assert!(registry_v2::on_ace_decryption_request(
-            b"premium-1", @0xbeef, string::utf8(b"https://shelby-hub-iota.vercel.app"),
+            b"premium-1", @0xbeef, string::utf8(b"https://shelbyscribe.vercel.app"),
         ), 13);
 
         coin::destroy_burn_cap(burn);

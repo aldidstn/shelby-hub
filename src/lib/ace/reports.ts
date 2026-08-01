@@ -17,7 +17,7 @@ import {
   type PublicKey,
   type Signature,
 } from '@aptos-labs/ts-sdk'
-import { getAceConfig, getAceReportModule } from '@/lib/ace/config'
+import { getAceAppOrigin, getAceConfig, getAceReportModule } from '@/lib/ace/config'
 
 const encoder = new TextEncoder()
 
@@ -35,6 +35,20 @@ function errorMessage(value: unknown) {
 function throwAceResultError(prefix: string, result: { errValue?: unknown; extra?: unknown }): never {
   const detail = errorMessage(result.errValue ?? result.extra)
   throw new Error(detail && detail !== 'undefined' ? `${prefix}: ${detail}` : prefix)
+}
+
+function currentAceOrigin() {
+  return typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : getAceAppOrigin()
+}
+
+export function formatAceDecryptError(value: unknown, origin = currentAceOrigin()) {
+  const detail = errorMessage(value)
+  if (/need \d+ shares, got 0/i.test(detail)) {
+    return `ACE returned no decryption shares. Confirm this wallet owns or purchased the active report and Registry V2 allows ${origin}; if both are correct, retry because the ACE preview workers may be unavailable.`
+  }
+  return detail
 }
 
 function isAceSupportedPublicKey(value: unknown): value is PublicKey {
@@ -237,10 +251,13 @@ export async function decryptReportWithAce(input: {
       fullMessage: signed.fullMessage,
     })
   } catch (error) {
-    throw new Error(`ACE decrypt failed: ${errorMessage(error)}`)
+    throw new Error(`ACE decrypt failed: ${formatAceDecryptError(error)}`)
   }
 
   const plaintext = result.okValue
-  if (!result.isOk || !plaintext) throwAceResultError('ACE decrypt failed', result)
+  if (!result.isOk || !plaintext) {
+    const detail = formatAceDecryptError(result.errValue ?? result.extra)
+    throw new Error(detail && detail !== 'undefined' ? `ACE decrypt failed: ${detail}` : 'ACE decrypt failed')
+  }
   return plaintext
 }

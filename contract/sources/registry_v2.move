@@ -32,7 +32,7 @@ module shelby_registry::registry_v2 {
     const MAX_TAG_BYTES: u64 = 40;
     const MAX_CIPHER_HASH_BYTES: u64 = 128;
     const MAX_ACE_ORIGIN_BYTES: u64 = 256;
-    const DEFAULT_ACE_ORIGIN: vector<u8> = b"https://shelby-hub-iota.vercel.app";
+    const DEFAULT_ACE_ORIGIN: vector<u8> = b"https://shelbyscribe.vercel.app";
 
     struct PurchaseKey has copy, drop, store {
         buyer: address,

@@ -6,7 +6,7 @@ import {
   Ed25519Signature,
 } from '@aptos-labs/ts-sdk'
 import { describe, expect, it } from 'vitest'
-import { normalizeAcePublicKey, normalizeAceSignature } from '@/lib/ace/reports'
+import { formatAceDecryptError, normalizeAcePublicKey, normalizeAceSignature } from '@/lib/ace/reports'
 
 describe('ACE public key normalization', () => {
   it('keeps SDK public key instances supported by ACE', () => {
@@ -61,5 +61,19 @@ describe('ACE signature normalization', () => {
     const normalized = normalizeAceSignature({ bcsToHex: () => signature.bcsToHex() })
     expect(normalized).toBeInstanceOf(AnySignature)
     expect(normalized.toString()).toBe(signature.toString())
+  })
+})
+
+describe('ACE decrypt diagnostics', () => {
+  it('explains zero-share failures as authorization, origin, or preview availability problems', () => {
+    expect(formatAceDecryptError(
+      'ACE.decryptCore: need 2 shares, got 0',
+      'https://shelbyscribe.vercel.app',
+    )).toContain('Registry V2 allows https://shelbyscribe.vercel.app')
+  })
+
+  it('preserves unrelated ACE errors', () => {
+    expect(formatAceDecryptError('ciphertext parse failed', 'https://shelbyscribe.vercel.app'))
+      .toBe('ciphertext parse failed')
   })
 })
