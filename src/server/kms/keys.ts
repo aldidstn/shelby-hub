@@ -2,6 +2,10 @@ import { DecryptCommand, GenerateDataKeyCommand, KMSClient } from '@aws-sdk/clie
 
 const kms = new KMSClient({ region: process.env.AWS_REGION ?? 'ap-southeast-1' })
 
+export function isKmsConfigured() {
+  return Boolean(process.env.AWS_KMS_KEY_ID)
+}
+
 function keyId() {
   const value = process.env.AWS_KMS_KEY_ID
   if (!value) throw new Error('AWS_KMS_KEY_ID is not configured')
@@ -21,9 +25,9 @@ export async function generateReportDataKey(reportId: string) {
   }
 }
 
-export async function decryptReportDataKey(reportId: string, wrappedKey: string) {
+export async function decryptReportDataKey(reportId: string, wrappedKey: string, kmsKeyId: string) {
   const result = await kms.send(new DecryptCommand({
-    KeyId: keyId(), CiphertextBlob: Buffer.from(wrappedKey, 'base64'),
+    KeyId: kmsKeyId, CiphertextBlob: Buffer.from(wrappedKey, 'base64'),
     EncryptionContext: { reportId, purpose: 'shelby-premium-report' },
   }))
   if (!result.Plaintext) throw new Error('KMS did not decrypt the data key')

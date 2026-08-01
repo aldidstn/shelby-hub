@@ -4,5 +4,7 @@ export function canAccessPremiumReport(input: {
   indexedPurchase: boolean
   onChainPurchase: boolean
 }) {
-  return input.walletAddress === input.ownerAddress || input.indexedPurchase || input.onChainPurchase
+  return input.walletAddress.toLowerCase() === input.ownerAddress.toLowerCase()
+    || input.indexedPurchase
+    || input.onChainPurchase
 }

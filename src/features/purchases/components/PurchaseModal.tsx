@@ -63,7 +63,8 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
     setErrorMsg(null)
 
     try {
-      await authenticate().catch(() => undefined)
+      if (report!.encryptionVersion === 'aes-256-gcm-v1') await authenticate()
+      else await authenticate().catch(() => undefined)
       const response = await signAndSubmitTransaction({
         data: purchaseReportPayload(report!.id),
       })

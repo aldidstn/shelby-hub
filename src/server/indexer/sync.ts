@@ -21,6 +21,13 @@ interface IndexedTransaction { version: string }
 const INDEXER_KEY = 'registry_v2_event_version'
 const LEGACY_KEY = 'registry_v1_imported'
 
+function indexedEncryptionVersion(value: number | string | undefined) {
+  const version = Number(value ?? 0)
+  if (version === 1) return 'aes-256-gcm-v1' as const
+  if (version === 2) return 'ace-ibe-v1' as const
+  return null
+}
+
 async function cursor(key: string, fallback = '0') {
   const [row] = await getDb().select().from(indexerState).where(eq(indexerState.key, key)).limit(1)
   return row?.cursor ?? fallback
@@ -79,7 +86,7 @@ async function applyEvent(event: IndexedEvent) {
       fileType: data.file_type!,
       tags: data.tags ?? [],
       cipherHash: data.cipher_hash || null,
-      encryptionVersion: Number(data.encryption_version) > 0 ? 'aes-256-gcm-v1' : null,
+      encryptionVersion: indexedEncryptionVersion(data.encryption_version),
       source: 'v2', status: 'active', active: true,
       chainVersion: Number(event.transaction_version),
       createdAt: new Date(Number(data.created_at) / 1000), updatedAt: new Date(),
@@ -89,7 +96,7 @@ async function applyEvent(event: IndexedEvent) {
         ownerAddress: normalizeAddress(data.owner!), blobAccount: normalizeAddress(data.owner!), blobName: data.blob_name, network: data.network!,
         title: data.title!, description: data.description ?? '', reportType: data.report_type!, access: data.access!,
         priceOctas: Number(data.price ?? 0), fileType: data.file_type!, tags: data.tags ?? [],
-        cipherHash: data.cipher_hash || null, encryptionVersion: Number(data.encryption_version) > 0 ? 'aes-256-gcm-v1' : null,
+        cipherHash: data.cipher_hash || null, encryptionVersion: indexedEncryptionVersion(data.encryption_version),
         status: 'active', source: 'v2', active: true,
         chainVersion: Number(event.transaction_version), updatedAt: new Date(),
       },

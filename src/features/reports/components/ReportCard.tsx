@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { type Report } from '../types/report'
 import { downloadErrorMessage, downloadReport } from '@/features/reports/services/download'
+import { useWalletSession } from '@/features/auth/useWalletSession'
 import styles from './ReportCard.module.css'
 
 const FILE_TYPE_COLORS: Record<string, string> = {
@@ -31,6 +32,7 @@ interface ReportCardProps {
 
 export function ReportCard({ report, purchased = false, walletConnected = false, onBuy }: ReportCardProps) {
   const { account, signMessage } = useWallet()
+  const { authenticate } = useWalletSession()
   const [copied, setCopied]         = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
@@ -54,6 +56,7 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
     setDownloading(true)
     setDownloadError(null)
     try {
+      if (report.encryptionVersion === 'aes-256-gcm-v1') await authenticate()
       await downloadReport(report, report.encryptionVersion === 'ace-ibe-v1' && account?.publicKey ? {
         accountAddress: account.address.toString(),
         publicKey: account.publicKey,

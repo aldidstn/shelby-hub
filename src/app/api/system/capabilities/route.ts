@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
+import { isKmsConfigured } from '@/server/kms/keys'
 
 export async function GET() {
   const hasDatabase = Boolean(process.env.DATABASE_URL)
   const hasRegistryV2 = Boolean(process.env.NEXT_PUBLIC_REGISTRY_V2_ADDRESS)
+  const hasKms = isKmsConfigured()
   const hasAce = hasRegistryV2 && Boolean(
     process.env.NEXT_PUBLIC_ACE_DEPLOYMENT_NAME
       || (
@@ -16,10 +18,15 @@ export async function GET() {
   return NextResponse.json({
     uploads: {
       free: true,
-      premium: hasAce,
+      premium: hasDatabase && hasRegistryV2 && hasKms,
+    },
+    premiumEncryption: {
+      configured: hasDatabase && hasRegistryV2 && hasKms,
+      provider: 'aws-kms',
     },
     ace: {
       configured: hasAce,
+      legacyReadOnly: true,
     },
     database: {
       configured: hasDatabase,

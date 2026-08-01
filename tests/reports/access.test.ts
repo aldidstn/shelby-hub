@@ -6,6 +6,10 @@ describe('premium report authorization', () => {
     expect(canAccessPremiumReport({ walletAddress: '0xa', ownerAddress: '0xa', indexedPurchase: false, onChainPurchase: false })).toBe(true)
   })
 
+  it('normalizes address casing for owner access', () => {
+    expect(canAccessPremiumReport({ walletAddress: '0xAB', ownerAddress: '0xab', indexedPurchase: false, onChainPurchase: false })).toBe(true)
+  })
+
   it('allows either indexed or directly verified purchase proof', () => {
     expect(canAccessPremiumReport({ walletAddress: '0xb', ownerAddress: '0xa', indexedPurchase: true, onChainPurchase: false })).toBe(true)
     expect(canAccessPremiumReport({ walletAddress: '0xb', ownerAddress: '0xa', indexedPurchase: false, onChainPurchase: true })).toBe(true)

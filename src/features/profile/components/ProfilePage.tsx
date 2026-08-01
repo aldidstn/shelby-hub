@@ -124,6 +124,7 @@ export default function ProfilePage() {
     setDownloadingId(report.id)
     setDownloadError(null)
     try {
+      if (report.encryptionVersion === 'aes-256-gcm-v1') await authenticate()
       await downloadReport(report, report.encryptionVersion === 'ace-ibe-v1' && account?.publicKey ? {
         accountAddress: account.address.toString(),
         publicKey: account.publicKey,

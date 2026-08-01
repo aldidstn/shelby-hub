@@ -1,10 +1,10 @@
 # Security model
 
-- Premium files uploaded through the current paid flow use ACE IBE encryption in the browser before the ciphertext is sent to Shelby.
-- Legacy AES-256-GCM/KMS reports remain readable through the authenticated key route, but new paid uploads use ACE when Registry V2 and ACE are configured.
+- New premium files are encrypted in the browser with a unique AES-256-GCM data key before ciphertext is sent to Shelby.
+- AWS KMS generates each data key. PostgreSQL stores only the KMS-wrapped key; the plaintext key is returned once to the authenticated uploader and is never persisted.
 - Wallet sessions use Sign in with Aptos, single-use nonces, secure HttpOnly cookies, and server-side expiry.
-- ACE decryption requires an active Registry V2 report and an on-chain owner, free-report, or purchaser authorization from `on_ace_decryption_request`.
-- Legacy KMS key delivery requires an active report and an authenticated author or verified purchaser.
+- KMS key delivery requires an active Registry V2 report and an authenticated author or verified purchaser. A missing indexed receipt is checked against `has_purchased` on-chain.
+- Existing ACE-encrypted reports remain on a legacy read-only path. New uploads do not depend on the ACE preview workers.
 - Blob coordinates from client query parameters are never trusted.
 - Transaction confirmation verifies success, sender, report, amount, module, and event type.
 - A purchaser can copy plaintext after authorized decryption; DRM is explicitly out of scope.

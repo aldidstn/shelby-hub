@@ -7,6 +7,7 @@ import { ReaderActions } from './ReaderActions'
 import { getBlobReadUrl } from '../services/shelby-download'
 import type { Report } from '../types/report'
 import { fetchReportBlob, type AceWalletSigner } from '@/features/reports/services/download'
+import { useWalletSession } from '@/features/auth/useWalletSession'
 import layout from '@/styles/layout.module.css'
 
 
@@ -55,6 +56,7 @@ function renderMarkdown(text: string) {
 
 export function BlobReaderPage({ report }: BlobReaderPageProps) {
   const { connected, account, signMessage } = useWallet()
+  const { authenticate } = useWalletSession()
   const { blobAccount = '', blobName = '', fileType, title, network = 'testnet' } = report
   const blobUrl = getBlobReadUrl(blobAccount, blobName, network)
 
@@ -81,6 +83,7 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
       setObjectUrl(null)
 
       try {
+        if (report.encryptionVersion === 'aes-256-gcm-v1') await authenticate()
         const blob = await fetchReportBlob(report, aceSigner)
         if (cancelled) return
         if (TEXT_TYPES.has(fileType)) {
@@ -104,7 +107,7 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
       cancelled = true
       if (revoke) URL.revokeObjectURL(revoke)
     }
-  }, [account, blobUrl, connected, fileType, report, signMessage])
+  }, [account, authenticate, blobUrl, connected, fileType, report, signMessage])
 
   return (
     <div className={layout.reader}>

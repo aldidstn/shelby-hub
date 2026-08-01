@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getOptionalSession, requireSession } from '@/server/auth/session'
 import { getDb } from '@/server/db/client'
 import { encryptionKeys, reports } from '@/server/db/schema'
-import { apiError } from '@/server/http/errors'
-import { generateReportDataKey } from '@/server/kms/keys'
+import { apiError, HttpError } from '@/server/http/errors'
+import { generateReportDataKey, isKmsConfigured } from '@/server/kms/keys'
 import { listReports } from '@/server/reports/repository'
 import { prepareReportSchema } from '@/features/reports/schemas/report'
 
@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireSession()
     const input = prepareReportSchema.parse(await request.json())
+    if (input.access === 'premium' && !isKmsConfigured()) {
+      throw new HttpError(503, 'Paid uploads are unavailable until AWS KMS is configured')
+    }
     const id = crypto.randomUUID()
     let plaintextKey: string | undefined
     await getDb().transaction(async (tx) => {
@@ -30,7 +33,13 @@ export async function POST(request: NextRequest) {
         fileType: input.fileType, tags: input.tags, network: input.network, status: 'pending', source: 'pending',
       })
       if (input.access === 'premium') {
-        const key = await generateReportDataKey(id)
+        let key
+        try {
+          key = await generateReportDataKey(id)
+        } catch (error) {
+          console.error('KMS data-key generation failed', error)
+          throw new HttpError(503, 'The premium encryption service is temporarily unavailable')
+        }
         plaintextKey = key.plaintextKey
         await tx.insert(encryptionKeys).values({ reportId: id, wrappedKey: key.wrappedKey, kmsKeyId: key.kmsKeyId })
       }

@@ -1,8 +1,8 @@
-# ACE premium access setup
+# ACE legacy read support
 
-ACE is the active paid-upload encryption path. It lets the browser encrypt content so ACE workers release decryption shares only after `registry_v2::on_ace_decryption_request` returns `true` on-chain.
+ACE is retained only for reports previously registered with encryption version 2. New paid uploads use AWS KMS envelope encryption because the public ACE preview workers did not provide a production reliability guarantee.
 
-ACE is currently marked by Aptos Labs as a prototype, so keep the flow closely monitored and avoid removing the legacy KMS reader until older encrypted reports are migrated.
+ACE is currently marked by Aptos Labs as a prototype, so keep this compatibility path closely monitored until older ACE-encrypted reports are migrated or retired.
 
 ## Current repo setup
 
@@ -16,8 +16,7 @@ ACE is currently marked by Aptos Labs as a prototype, so keep the flow closely m
 - The hook denies inactive reports, unknown reports, unpaid premium reports, and wrong app origins.
 - `src/lib/ace/config.ts` resolves ACE deployment settings.
 - `src/lib/ace/reports.ts` encrypts paid report files and creates wallet-signed decryption sessions.
-- Paid uploads generate a report ID in the browser, ACE-encrypt the file, upload ciphertext to Shelby, register Registry V2 metadata, and verify the `ReportRegistered` event.
-- Paid reads and downloads fetch ciphertext from Shelby, verify the stored hash, ask the wallet to sign the ACE decrypt request, and decrypt in the browser.
+- Legacy paid reads and downloads fetch ciphertext from Shelby, verify the stored hash, ask the wallet to sign the ACE decrypt request, and decrypt in the browser.
 - Purchases verify the Registry V2 `ReportPurchased` event before the UI marks the report purchased. Database confirmation is best-effort when PostgreSQL is available.
 
 ## Values required from the project owner
@@ -50,8 +49,8 @@ aptos move run --function-id YOUR_REGISTRY_ADDRESS::registry_v2::initialize
 aptos move run --function-id YOUR_REGISTRY_ADDRESS::registry_v2::update_ace_origin --args string:https://shelbyscribe.vercel.app
 ```
 
-## Remaining work
+## Retirement checklist
 
-1. Add the PostgreSQL/indexer projection so Registry V2 paid reports remain searchable across sessions without relying on local optimistic state.
-2. Run browser E2E tests for owner decrypt, unpaid denial, purchase decrypt, wrong-origin denial, and second-session decrypt.
-3. Migrate or sunset older KMS-encrypted premium records after verifying there are no active users depending on that path.
+1. Identify every active encryption-version-2 report.
+2. Keep owner decrypt, purchaser decrypt, and wrong-origin denial covered while those reports remain active.
+3. Remove the ACE SDK and environment variables only after no active report depends on them.

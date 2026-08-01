@@ -17,6 +17,7 @@ export async function GET(_request: NextRequest, context: Context) {
     const [report] = await getDb().select().from(reports).where(and(eq(reports.id, id), eq(reports.status, 'active'), eq(reports.active, true))).limit(1)
     if (!report) throw new HttpError(404, 'Report not found')
     if (report.access !== 'premium') throw new HttpError(400, 'Report is not encrypted premium content')
+    if (report.encryptionVersion !== 'aes-256-gcm-v1') throw new HttpError(409, 'This report uses a different encryption provider')
     let indexedPurchase = false
     if (report.ownerAddress !== session.walletAddress) {
       const [receipt] = await getDb().select({ id: purchases.id }).from(purchases).where(and(
@@ -33,7 +34,13 @@ export async function GET(_request: NextRequest, context: Context) {
     if (!authorized) throw new HttpError(403, 'Purchase required')
     const [key] = await getDb().select().from(encryptionKeys).where(eq(encryptionKeys.reportId, id)).limit(1)
     if (!key || !report.encryptionIv) throw new HttpError(503, 'Encryption material is unavailable')
-    const dataKey = await decryptReportDataKey(id, key.wrappedKey)
+    let dataKey
+    try {
+      dataKey = await decryptReportDataKey(id, key.wrappedKey, key.kmsKeyId)
+    } catch (error) {
+      console.error('KMS data-key decryption failed', { reportId: id, error })
+      throw new HttpError(503, 'The premium key service is temporarily unavailable')
+    }
     return NextResponse.json({ dataKey, iv: report.encryptionIv, algorithm: 'AES-GCM' }, {
       headers: { 'Cache-Control': 'no-store, private' },
     })

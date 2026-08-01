@@ -6,11 +6,10 @@ import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { uploadToShelby, type UploadStep, type UploadProgress } from '../services/upload'
 import type { Report } from '../types/report'
 import { useWalletSession } from '@/features/auth/useWalletSession'
-import { sha256Base64, toArrayBuffer } from '@/features/reports/services/encryption'
+import { encryptReportFile } from '@/features/reports/services/encryption'
 import { finalizeReport, prepareReport } from '@/features/reports/services/api'
 import { upsertLocalReport } from '@/features/reports/services/local-catalog'
 import { registerLegacyReportPayload, registerReportPayload, verifyReportRegistration } from '@/features/reports/services/registry'
-import { encryptReportWithAce } from '@/lib/ace/reports'
 import layout from '@/styles/layout.module.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -76,8 +75,9 @@ type UploadCapabilities = {
     free?: boolean
     premium?: boolean
   }
-  ace?: {
+  premiumEncryption?: {
     configured?: boolean
+    provider?: string
   }
 }
 
@@ -160,7 +160,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   const [progress, setProgress] = useState<UploadProgress | null>(null)
   const [txHash, setTxHash]     = useState<string | null>(null)
   const [copied, setCopied]     = useState(false)
-  const [premiumUploadsAvailable, setPremiumUploadsAvailable] = useState(HAS_REGISTRY_V2)
+  const [premiumUploadsAvailable, setPremiumUploadsAvailable] = useState(false)
 
   const inputRef  = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -200,7 +200,9 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
     fetch('/api/system/capabilities', { cache: 'no-store' })
       .then(async (response) => response.ok ? await response.json() as UploadCapabilities : null)
       .then((capabilities) => {
-        if (!cancelled) setPremiumUploadsAvailable(Boolean(capabilities?.uploads?.premium))
+        if (!cancelled) setPremiumUploadsAvailable(
+          Boolean(capabilities?.uploads?.premium && capabilities?.premiumEncryption?.provider === 'aws-kms'),
+        )
       })
       .catch(() => {
         if (!cancelled) setPremiumUploadsAvailable(false)
@@ -310,94 +312,9 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
       onUploadComplete(uploadedReport)
     }
 
-    async function uploadPremiumWithAce() {
-      if (!premiumUploadsAvailable) throw new Error('Paid uploads require Registry V2 and ACE to be configured.')
-
-      const reportId = crypto.randomUUID()
-
-      setProgress({ step: 'generating', uploadedBytes: 0, totalBytes: selectedFile.size })
-      const plaintext = new Uint8Array(await selectedFile.arrayBuffer())
-      const ciphertext = await encryptReportWithAce({ reportId, plaintext })
-      const cipherHash = await sha256Base64(ciphertext)
-      const uploadBlobName = `${blobName}.ace`
-      const uploadFile = new File([toArrayBuffer(ciphertext)], `${selectedFile.name}.ace`, { type: 'application/octet-stream' })
-
-      const result = await uploadToShelby({
-        file: uploadFile,
-        blobName: uploadBlobName,
-        expirationMs: expiryMs,
-        network,
-        walletAddress,
-        signAndSubmit: (payload) =>
-          signAndSubmitTransaction(payload as Parameters<typeof signAndSubmitTransaction>[0]),
-        onProgress: setProgress,
-      })
-
-      setProgress({ step: 'publishing', uploadedBytes: 0, totalBytes: 0 })
-      const registration = await signAndSubmitTransaction({ data: registerReportPayload({
-        id: reportId,
-        blobName: result.blobName,
-        network,
-        title: displayTitle,
-        description: description.trim(),
-        reportType,
-        access: 'premium',
-        priceOctas,
-        fileType,
-        tags: parsedTags,
-        cipherHash,
-        encryptionVersion: 2,
-      }) })
-
-      await verifyReportRegistration({
-        transactionHash: registration.hash,
-        reportId,
-        ownerAddress: walletAddress,
-        blobName: result.blobName,
-        access: 'premium',
-        priceOctas,
-        cipherHash,
-        encryptionVersion: 2,
-      })
-
-      const now = new Date().toISOString()
-      const uploadedReport: Report = {
-        id: reportId,
-        title: displayTitle,
-        description: description.trim(),
-        type: reportType,
-        access: 'premium',
-        price: priceOctas / 1e8,
-        likes: 0,
-        downloads: 0,
-        author: authorName,
-        authorAddress: walletAddress,
-        createdAt: now,
-        onChain: true,
-        fileType,
-        tags: parsedTags,
-        blobAccount: walletAddress,
-        blobName: result.blobName,
-        network,
-        encryptionVersion: 'ace-ibe-v1',
-        cipherHash,
-        owned: true,
-        active: true,
-      }
-      upsertLocalReport(uploadedReport, walletAddress)
-      setTxHash(registration.hash)
-      setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
-      onUploadComplete(uploadedReport)
-    }
-
     let secureStage: 'auth' | 'prepare' | 'encrypt' | 'upload' | 'publish' | 'finalize' = 'auth'
 
     try {
-      if (access === 'premium') {
-        await uploadPremiumWithAce()
-        return
-      }
-
       if (access === 'free' && !HAS_REGISTRY_V2) {
         await uploadFreeDirectly()
         return
@@ -411,10 +328,36 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         priceOctas, fileType, tags: parsedTags, network,
       })
 
+      let uploadFile = selectedFile
+      let uploadBlobName = blobName
+      let cipherHash: string | undefined
+      let encryptionIv: string | undefined
+      let encryptionVersion = 0
+
+      if (access === 'premium') {
+        if (!premiumUploadsAvailable || !prepared.dataKey) {
+          throw new Error('Paid uploads require PostgreSQL, AWS KMS, and Registry V2 to be configured.')
+        }
+        secureStage = 'encrypt'
+        setProgress({ step: 'generating', uploadedBytes: 0, totalBytes: selectedFile.size })
+        let plaintextKey: string | undefined = prepared.dataKey
+        try {
+          const encrypted = await encryptReportFile(selectedFile, plaintextKey)
+          uploadFile = encrypted.file
+          uploadBlobName = `${blobName}.enc`
+          cipherHash = encrypted.cipherHash
+          encryptionIv = encrypted.iv
+          encryptionVersion = 1
+        } finally {
+          plaintextKey = undefined
+          prepared.dataKey = undefined
+        }
+      }
+
       secureStage = 'upload'
       const result = await uploadToShelby({
-        file: selectedFile,
-        blobName,
+        file: uploadFile,
+        blobName: uploadBlobName,
         expirationMs: expiryMs,
         network,
         walletAddress,
@@ -428,11 +371,24 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
       const registration = await signAndSubmitTransaction({ data: registerReportPayload({
         id: prepared.id, blobName: result.blobName, network, title: displayTitle,
         description: description.trim(), reportType, access, priceOctas, fileType,
-        tags: parsedTags, encryptionVersion: 0,
+        tags: parsedTags, cipherHash, encryptionVersion,
       }) })
+      await verifyReportRegistration({
+        transactionHash: registration.hash,
+        reportId: prepared.id,
+        ownerAddress: walletAddress,
+        blobName: result.blobName,
+        access,
+        priceOctas,
+        cipherHash,
+        encryptionVersion,
+      })
       secureStage = 'finalize'
       const report = await finalizeReport(prepared.id, {
-        blobName: result.blobName, transactionHash: registration.hash,
+        blobName: result.blobName,
+        transactionHash: registration.hash,
+        cipherHash,
+        encryptionIv,
       })
       upsertLocalReport({ ...report, owned: true }, walletAddress)
       setTxHash(registration.hash)
@@ -724,7 +680,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
               </div>
               {!premiumUploadsAvailable && (
                 <p className="text-xs text-text-muted">
-                  Paid uploads are temporarily disabled until Registry V2 and ACE are configured. Use Free to upload now.
+                  Paid uploads are temporarily disabled until PostgreSQL, AWS KMS, and Registry V2 are configured. Use Free to upload now.
                 </p>
               )}
               {access === 'premium' && (

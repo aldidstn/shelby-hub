@@ -18,6 +18,6 @@ export const prepareReportSchema = z.object({
 export const finalizeReportSchema = z.object({
   blobName: z.string().trim().min(1).max(512),
   transactionHash: z.string().regex(/^0x[0-9a-fA-F]+$/),
-  cipherHash: z.string().max(128).optional(),
-  encryptionIv: z.string().optional(),
+  cipherHash: z.string().regex(/^[A-Za-z0-9+/]{43}=$/).optional(),
+  encryptionIv: z.string().regex(/^[A-Za-z0-9+/]{16}$/).optional(),
 })
