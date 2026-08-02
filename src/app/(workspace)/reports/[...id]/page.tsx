@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { REPORT_CONTENT, STATIC_REPORTS, type ContentBlock } from '@/features/reports/data/content'
 import { ReaderActions } from '@/features/reports/components/ReaderActions'
+import ReportsPage from '@/features/reports/components/ReportsPage'
 import { SharedReportPreview } from '@/features/reports/components/SharedReportPreview'
 import { getOptionalSession } from '@/server/auth/session'
 import { findReport } from '@/server/reports/repository'
@@ -21,7 +22,12 @@ export default async function ReportReaderPage({ params }: Props) {
     const session = await getOptionalSession()
     const indexed = await findReport(id, session?.walletAddress)
     if (!indexed || !indexed.blobAccount || !indexed.blobName || indexed.active === false) notFound()
-    return <SharedReportPreview report={indexed} />
+    return (
+      <>
+        <ReportsPage />
+        <SharedReportPreview report={indexed} />
+      </>
+    )
   }
 
   const readableReports = STATIC_REPORTS.filter((r) => Boolean(REPORT_CONTENT[r.id]))

@@ -5,8 +5,8 @@
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgb(16 7 13 / .62);
-  backdrop-filter: blur(12px) saturate(120%);
+  background: rgb(16 7 13 / .46);
+  backdrop-filter: blur(6px) saturate(110%);
 }
 
 .dialog {
@@ -56,6 +56,23 @@
   overflow-wrap: anywhere;
 }
 
+.priceSubtitle {
+  display: flex;
+  align-items: baseline;
+  gap: .45rem;
+  margin-top: .55rem;
+  color: var(--text-secondary);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+.priceSubtitle strong {
+  color: var(--brand-pink);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
 .closeButton {
   display: grid;
   flex: 0 0 auto;
@@ -89,8 +106,7 @@
 
 .categoryBadge,
 .fileBadge,
-.freeBadge,
-.paidBadge {
+.freeBadge {
   display: inline-flex;
   min-height: 1.75rem;
   align-items: center;
@@ -116,12 +132,6 @@
 .freeBadge {
   color: var(--semantic-positive);
   background: color-mix(in srgb, var(--semantic-positive) 10%, transparent);
-}
-
-.paidBadge {
-  border: 1px solid color-mix(in srgb, var(--brand-pink) 28%, transparent);
-  color: var(--brand-pink);
-  background: var(--brand-pink-light);
 }
 
 .description {

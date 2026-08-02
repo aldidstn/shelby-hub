@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
+import { WalletConnectDialog } from '@/components/wallet/WalletConnectDialog'
 import { PurchaseModal } from '@/features/purchases/components/PurchaseModal'
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import { downloadErrorMessage, downloadReport } from '@/features/reports/services/download'
@@ -31,6 +32,7 @@ export function SharedReportPreview({ report }: { report: Report }) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const [purchased, setPurchased] = useState(Boolean(report.purchased))
   const [purchaseOpen, setPurchaseOpen] = useState(false)
+  const [walletOpen, setWalletOpen] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,7 +49,7 @@ export function SharedReportPreview({ report }: { report: Report }) {
     dialogRef.current?.focus()
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape' && !purchaseOpen) router.push('/reports')
+      if (event.key === 'Escape' && !purchaseOpen && !walletOpen) router.push('/reports')
     }
 
     document.addEventListener('keydown', closeOnEscape)
@@ -55,7 +57,7 @@ export function SharedReportPreview({ report }: { report: Report }) {
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', closeOnEscape)
     }
-  }, [purchaseOpen, router])
+  }, [purchaseOpen, router, walletOpen])
 
   async function handleDownload() {
     if (!report.blobAccount || !report.blobName) {
@@ -94,7 +96,7 @@ export function SharedReportPreview({ report }: { report: Report }) {
 
   return (
     <>
-      {!purchaseOpen && (
+      {!purchaseOpen && !walletOpen && (
         <div className={styles.overlay} onMouseDown={(event) => {
           if (event.currentTarget === event.target) router.push('/reports')
         }}>
@@ -111,6 +113,9 @@ export function SharedReportPreview({ report }: { report: Report }) {
             <div>
               <p className={styles.eyebrow}>Shared file</p>
               <h1 id="shared-report-title" className={styles.title}>{report.title}</h1>
+              {report.access === 'premium' && (
+                <p className={styles.priceSubtitle}>Price <strong>{priceLabel}</strong></p>
+              )}
             </div>
             <Link href="/reports" className={styles.closeButton} aria-label="Close preview">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -122,7 +127,7 @@ export function SharedReportPreview({ report }: { report: Report }) {
           <div className={styles.badges} aria-label="File summary">
             <span className={styles.categoryBadge}>{report.type}</span>
             <span className={styles.fileBadge}>{report.fileType.toUpperCase()}</span>
-            <span className={report.access === 'free' ? styles.freeBadge : styles.paidBadge}>{priceLabel}</span>
+            {report.access === 'free' && <span className={styles.freeBadge}>Free</span>}
           </div>
 
           <p id="shared-report-description" className={styles.description}>
@@ -177,11 +182,15 @@ export function SharedReportPreview({ report }: { report: Report }) {
                   {downloading ? 'Downloading…' : 'Download file'}
                 </button>
               ) : (
-                <button type="button" className={styles.primaryButton} onClick={() => setPurchaseOpen(true)}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={() => connected ? setPurchaseOpen(true) : setWalletOpen(true)}
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 11V8a5 5 0 0 1 10 0v3m-9 0h8a2 2 0 0 1 2 2v7H6v-7a2 2 0 0 1 2-2Z" />
                   </svg>
-                  Purchase for {report.price ?? 0} APT
+                  {connected ? `Buy ${report.price ?? 0} APT` : 'Connect wallet first'}
                 </button>
               )}
             </div>
@@ -201,6 +210,12 @@ export function SharedReportPreview({ report }: { report: Report }) {
           }}
         />
       )}
+
+      <WalletConnectDialog
+        open={walletOpen}
+        onClose={() => setWalletOpen(false)}
+        onConnected={() => setWalletOpen(false)}
+      />
     </>
   )
 }

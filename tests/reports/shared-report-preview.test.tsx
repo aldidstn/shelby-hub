@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Report } from '@/features/reports/types/report'
 
@@ -44,7 +44,7 @@ describe('shared report preview', () => {
   afterEach(cleanup)
 
   beforeEach(() => {
-    wallet.current = { account: null, connected: false, signMessage: vi.fn() }
+    wallet.current = { account: null, connected: false, connect: vi.fn(), signMessage: vi.fn(), wallets: [] }
   })
 
   it('shows the accepted metadata and download action for a free file', () => {
@@ -59,12 +59,31 @@ describe('shared report preview', () => {
     expect(screen.getByRole('button', { name: 'Download file' })).toBeInTheDocument()
   })
 
-  it('offers purchase for a paid file without verified access', () => {
+  it('asks a disconnected user to connect and shows price as subtitle copy', () => {
     render(<SharedReportPreview report={{ ...report, access: 'premium', price: 2.5 }} />)
 
     expect(screen.getByText('2.5 APT', { selector: 'dd' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Purchase for 2.5 APT' })).toBeInTheDocument()
+    expect(screen.getByText('2.5 APT', { selector: 'strong' })).toBeInTheDocument()
+    const connectButton = screen.getByRole('button', { name: 'Connect wallet first' })
+    expect(connectButton).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Download file' })).not.toBeInTheDocument()
+
+    fireEvent.click(connectButton)
+    expect(screen.getByRole('dialog', { name: 'Choose your wallet' })).toBeInTheDocument()
+  })
+
+  it('shows the file price in the buy action when a wallet is connected', () => {
+    wallet.current = {
+      account: { address: { toString: () => '0xbuyer' } },
+      connected: true,
+      connect: vi.fn(),
+      signMessage: vi.fn(),
+      wallets: [],
+    }
+
+    render(<SharedReportPreview report={{ ...report, access: 'premium', price: 2.5 }} />)
+
+    expect(screen.getByRole('button', { name: 'Buy 2.5 APT' })).toBeInTheDocument()
   })
 
   it('allows a verified purchaser to download a paid file', () => {
