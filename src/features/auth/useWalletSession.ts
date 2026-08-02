@@ -1,50 +1,25 @@
 'use client'
 
-import { serializeSignInOutput } from '@aptos-labs/siwa'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
-import { useCallback } from 'react'
-
-let databaseSessionSupport: boolean | null = null
-
-async function hasDatabaseBackedSessions() {
-  if (databaseSessionSupport !== null) return databaseSessionSupport
-  try {
-    const response = await fetch('/api/system/capabilities', { cache: 'no-store' })
-    const capabilities = await response.json() as { database?: { configured?: boolean } }
-    databaseSessionSupport = Boolean(capabilities.database?.configured)
-  } catch {
-    databaseSessionSupport = true
-  }
-  return databaseSessionSupport
-}
+import { useCallback, useEffect, useRef } from 'react'
+import { authenticateWalletSession } from '@/features/auth/services/wallet-session'
 
 export function useWalletSession() {
   const { account, wallet, signIn } = useWallet()
+  const walletRef = useRef({ account, wallet, signIn })
+  useEffect(() => {
+    walletRef.current = { account, wallet, signIn }
+  }, [account, wallet, signIn])
 
   const authenticate = useCallback(async () => {
-    if (!account || !wallet) throw new Error('Connect your wallet first')
-    if (!await hasDatabaseBackedSessions()) {
-      throw new Error('Wallet sessions are disabled until PostgreSQL is configured. ACE report access still uses direct wallet signatures.')
-    }
-
-    const currentResponse = await fetch('/api/auth/session', { cache: 'no-store' })
-    if (currentResponse.ok) {
-      const current = await currentResponse.json() as { authenticated: boolean; walletAddress: string | null }
-      if (current.authenticated && current.walletAddress === account.address.toString()) return current.walletAddress
-    }
-    const challengeResponse = await fetch('/api/auth/challenge', { method: 'POST' })
-    const challenge = await challengeResponse.json() as { input?: Parameters<typeof signIn>[0]['input']; error?: string }
-    if (!challengeResponse.ok || !challenge.input) throw new Error(challenge.error ?? 'Could not create sign-in challenge')
-    const output = await signIn({ walletName: wallet.name, input: challenge.input })
-    if (!output) throw new Error('Wallet did not return a sign-in proof')
-    const response = await fetch('/api/auth/verify', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ output: serializeSignInOutput(output) }),
+    const current = walletRef.current
+    if (!current.account || !current.wallet) throw new Error('Connect your wallet first')
+    return authenticateWalletSession({
+      accountAddress: current.account.address.toString(),
+      walletName: current.wallet.name,
+      signIn: current.signIn,
     })
-    const result = await response.json() as { walletAddress?: string; error?: string }
-    if (!response.ok) throw new Error(result.error ?? 'Wallet sign-in failed')
-    return result.walletAddress!
-  }, [account, wallet, signIn])
+  }, [])
 
   return { authenticate }
 }

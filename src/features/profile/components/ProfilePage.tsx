@@ -23,6 +23,7 @@ type ProfileFilter = 'uploaded' | 'purchased'
 export default function ProfilePage() {
   const { connected, account, signAndSubmitTransaction, signMessage } = useWallet()
   const { authenticate } = useWalletSession()
+  const walletAddress = account?.address?.toString()
 
   const [uploadedReports, setUploadedReports] = useState<Report[]>([])
   const [purchasedReports, setPurchasedReports] = useState<Report[]>([])
@@ -40,9 +41,9 @@ export default function ProfilePage() {
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!connected || !account) { setUploadedReports([]); setPurchasedReports([]); return }
+    if (!connected || !walletAddress) { setUploadedReports([]); setPurchasedReports([]); return }
     let cancelled = false
-    const walletAddress = account.address.toString().toLowerCase()
+    const normalizedWalletAddress = walletAddress.toLowerCase()
 
     async function loadProfileReports() {
       setLoadError(null)
@@ -56,10 +57,10 @@ export default function ProfilePage() {
           // Profile reads are public catalog reads; write/delete actions still require wallet transactions.
           items = await fetchReports(false)
         }
-        const merged = mergeReportsWithLocal(items, listLocalReports(walletAddress))
+        const merged = mergeReportsWithLocal(items, listLocalReports(normalizedWalletAddress))
         if (!cancelled) {
-          setUploadedReports(merged.filter((report) => report.authorAddress.toLowerCase() === walletAddress))
-          setPurchasedReports(merged.filter((report) => Boolean(report.purchased) && report.authorAddress.toLowerCase() !== walletAddress))
+          setUploadedReports(merged.filter((report) => report.authorAddress.toLowerCase() === normalizedWalletAddress))
+          setPurchasedReports(merged.filter((report) => Boolean(report.purchased) && report.authorAddress.toLowerCase() !== normalizedWalletAddress))
         }
       } catch (error) {
         if (!cancelled) {
@@ -72,7 +73,7 @@ export default function ProfilePage() {
 
     loadProfileReports()
     return () => { cancelled = true }
-  }, [connected, account, authenticate])
+  }, [connected, walletAddress, authenticate])
 
   function copyAddress() {
     if (!account) return

@@ -22,6 +22,7 @@ function ReportsPageInner() {
   const urlQuery     = searchParams.get('q') ?? ''
   const { connected, account } = useWallet()
   const { authenticate } = useWalletSession()
+  const walletAddress = account?.address?.toString()
 
   const PAGE_SIZE = 12
 
@@ -44,7 +45,6 @@ function ReportsPageInner() {
   const loadRegistry = useCallback(async (mine = false) => {
     setRegistryLoading(true)
     setCatalogError(null)
-    const walletAddress = account?.address?.toString()
     setLocalReports(listLocalReports(walletAddress))
     try {
       const reports = await fetchReports(mine)
@@ -57,7 +57,7 @@ function ReportsPageInner() {
     } finally {
       setRegistryLoading(false)
     }
-  }, [account])
+  }, [walletAddress])
 
   useEffect(() => { loadRegistry(false) }, [loadRegistry])
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { ReaderActions } from './ReaderActions'
@@ -57,6 +57,11 @@ function renderMarkdown(text: string) {
 export function BlobReaderPage({ report }: BlobReaderPageProps) {
   const { connected, account, signMessage } = useWallet()
   const { authenticate } = useWalletSession()
+  const walletAddress = account?.address?.toString()
+  const walletRef = useRef({ account, signMessage })
+  useEffect(() => {
+    walletRef.current = { account, signMessage }
+  }, [account, signMessage])
   const { blobAccount = '', blobName = '', fileType, title, network = 'testnet' } = report
   const blobUrl = getBlobReadUrl(blobAccount, blobName, network)
 
@@ -68,11 +73,12 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
   useEffect(() => {
     let cancelled = false
     let revoke: string | null = null
-    const aceSigner: AceWalletSigner | undefined = report.encryptionVersion === 'ace-ibe-v1' && connected && account?.publicKey
+    const currentWallet = walletRef.current
+    const aceSigner: AceWalletSigner | undefined = report.encryptionVersion === 'ace-ibe-v1' && connected && currentWallet.account?.publicKey
       ? {
-          accountAddress: account.address.toString(),
-          publicKey: account.publicKey,
-          signMessage,
+          accountAddress: currentWallet.account.address.toString(),
+          publicKey: currentWallet.account.publicKey,
+          signMessage: currentWallet.signMessage,
       }
       : undefined
 
@@ -107,7 +113,7 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
       cancelled = true
       if (revoke) URL.revokeObjectURL(revoke)
     }
-  }, [account, authenticate, blobUrl, connected, fileType, report, signMessage])
+  }, [authenticate, blobUrl, connected, fileType, report, walletAddress])
 
   return (
     <div className={layout.reader}>
