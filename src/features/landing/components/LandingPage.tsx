@@ -28,7 +28,7 @@ const BENEFITS = [
 ] as const
 
 const STORAGE_STEPS = [
-  { title: 'Create', text: 'Report ID + KMS key' },
+  { title: 'Create', text: 'Report ID + wrapped key' },
   { title: 'Encrypt', text: 'AES-256-GCM in browser' },
   { title: 'Store', text: 'Ciphertext on Shelby' },
   { title: 'Unlock', text: 'Key after verified access' },
@@ -250,7 +250,7 @@ export function LandingPage() {
 
           <div className={`${styles.workflows} ${styles.reveal}`} data-landing-reveal>
             <article className={styles.flowLane}>
-              <header><span>WORKFLOW 01</span><b>TypeScript / Shelby / KMS</b></header>
+              <header><span>WORKFLOW 01</span><b>TypeScript / Shelby / Encryption</b></header>
               <h3>Encrypted storage pipeline</h3>
               <ol>{STORAGE_STEPS.map((step, index) => <li key={step.title}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{step.title}</strong><p>{step.text}</p></div></li>)}</ol>
               <footer><i /> Ciphertext is public. Access keys are not.</footer>

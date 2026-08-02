@@ -201,7 +201,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
       .then(async (response) => response.ok ? await response.json() as UploadCapabilities : null)
       .then((capabilities) => {
         if (!cancelled) setPremiumUploadsAvailable(
-          Boolean(capabilities?.uploads?.premium && capabilities?.premiumEncryption?.provider === 'aws-kms'),
+          Boolean(capabilities?.uploads?.premium && capabilities?.premiumEncryption?.provider === 'vercel-master-key'),
         )
       })
       .catch(() => {
@@ -336,7 +336,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
 
       if (access === 'premium') {
         if (!premiumUploadsAvailable || !prepared.dataKey) {
-          throw new Error('Paid uploads require PostgreSQL, AWS KMS, and Registry V2 to be configured.')
+          throw new Error('Paid uploads require PostgreSQL, premium encryption, and Registry V2 to be configured.')
         }
         secureStage = 'encrypt'
         setProgress({ step: 'generating', uploadedBytes: 0, totalBytes: selectedFile.size })
@@ -680,7 +680,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
               </div>
               {!premiumUploadsAvailable && (
                 <p className="text-xs text-text-muted">
-                  Paid uploads are temporarily disabled until PostgreSQL, AWS KMS, and Registry V2 are configured. Use Free to upload now.
+                  Paid uploads are temporarily disabled until PostgreSQL, premium encryption, and Registry V2 are configured. Use Free to upload now.
                 </p>
               )}
               {access === 'premium' && (

@@ -3,7 +3,7 @@ import { getOptionalSession, requireSession } from '@/server/auth/session'
 import { getDb } from '@/server/db/client'
 import { encryptionKeys, reports } from '@/server/db/schema'
 import { apiError, HttpError } from '@/server/http/errors'
-import { generateReportDataKey, isKmsConfigured } from '@/server/kms/keys'
+import { createReportDataKey, isPremiumEncryptionConfigured } from '@/server/encryption/keys'
 import { listReports } from '@/server/reports/repository'
 import { prepareReportSchema } from '@/features/reports/schemas/report'
 
@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireSession()
     const input = prepareReportSchema.parse(await request.json())
-    if (input.access === 'premium' && !isKmsConfigured()) {
-      throw new HttpError(503, 'Paid uploads are unavailable until AWS KMS is configured')
+    if (input.access === 'premium' && !isPremiumEncryptionConfigured()) {
+      throw new HttpError(503, 'Paid uploads are unavailable until premium encryption is configured')
     }
     const id = crypto.randomUUID()
     let plaintextKey: string | undefined
@@ -35,13 +35,18 @@ export async function POST(request: NextRequest) {
       if (input.access === 'premium') {
         let key
         try {
-          key = await generateReportDataKey(id)
+          key = await createReportDataKey(id)
         } catch (error) {
-          console.error('KMS data-key generation failed', error)
+          console.error('Premium data-key generation failed', error)
           throw new HttpError(503, 'The premium encryption service is temporarily unavailable')
         }
         plaintextKey = key.plaintextKey
-        await tx.insert(encryptionKeys).values({ reportId: id, wrappedKey: key.wrappedKey, kmsKeyId: key.kmsKeyId })
+        await tx.insert(encryptionKeys).values({
+          reportId: id,
+          wrappedKey: key.wrappedKey,
+          wrappingKeyId: key.wrappingKeyId,
+          keyVersion: key.keyVersion,
+        })
       }
     })
     return NextResponse.json({ id, dataKey: plaintextKey, encryptionVersion: plaintextKey ? 'aes-256-gcm-v1' : undefined }, {

@@ -45,7 +45,7 @@ export const purchases = pgTable('purchases', {
 export const encryptionKeys = pgTable('encryption_keys', {
   reportId: text('report_id').primaryKey().references(() => reports.id, { onDelete: 'cascade' }),
   wrappedKey: text('wrapped_key').notNull(),
-  kmsKeyId: text('kms_key_id').notNull(),
+  wrappingKeyId: text('kms_key_id').notNull(),
   keyVersion: text('key_version').notNull().default('1'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })

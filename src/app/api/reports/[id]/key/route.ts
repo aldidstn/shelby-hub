@@ -4,7 +4,7 @@ import { requireSession } from '@/server/auth/session'
 import { getDb } from '@/server/db/client'
 import { encryptionKeys, purchases, reports } from '@/server/db/schema'
 import { apiError, HttpError } from '@/server/http/errors'
-import { decryptReportDataKey } from '@/server/kms/keys'
+import { unwrapReportDataKey } from '@/server/encryption/keys'
 import { hasPurchasedOnChain } from '@/lib/aptos/registry-v2'
 import { canAccessPremiumReport } from '@/server/reports/access'
 
@@ -36,9 +36,9 @@ export async function GET(_request: NextRequest, context: Context) {
     if (!key || !report.encryptionIv) throw new HttpError(503, 'Encryption material is unavailable')
     let dataKey
     try {
-      dataKey = await decryptReportDataKey(id, key.wrappedKey, key.kmsKeyId)
+      dataKey = await unwrapReportDataKey(id, key.wrappedKey, key.wrappingKeyId)
     } catch (error) {
-      console.error('KMS data-key decryption failed', { reportId: id, error })
+      console.error('Premium data-key unwrap failed', { reportId: id, error })
       throw new HttpError(503, 'The premium key service is temporarily unavailable')
     }
     return NextResponse.json({ dataKey, iv: report.encryptionIv, algorithm: 'AES-GCM' }, {

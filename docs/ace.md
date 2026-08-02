@@ -1,6 +1,6 @@
 # ACE legacy read support
 
-ACE is retained only for reports previously registered with encryption version 2. New paid uploads use AWS KMS envelope encryption because the public ACE preview workers did not provide a production reliability guarantee.
+ACE is retained only for reports previously registered with encryption version 2. New paid uploads use versioned envelope encryption backed by a server-only Vercel secret because the public ACE preview workers did not provide a production reliability guarantee.
 
 ACE is currently marked by Aptos Labs as a prototype, so keep this compatibility path closely monitored until older ACE-encrypted reports are migrated or retired.
 
