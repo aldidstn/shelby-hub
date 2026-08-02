@@ -15,10 +15,15 @@ import {
   verifyWalletSignIn,
 } from '@/server/auth/siwa'
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+})
 
 describe('SIWA verification', () => {
   it('binds the exact challenge timestamps and verifies a testnet proof', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-02T02:31:00.000Z'))
     const account = Account.generate()
     const createdAt = new Date('2026-08-02T02:30:00.000Z')
     const expiresAt = new Date('2026-08-02T02:35:00.000Z')

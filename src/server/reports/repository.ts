@@ -28,9 +28,32 @@ export function toReport(row: typeof reports.$inferSelect, walletAddress?: strin
     encryptionIv: row.encryptionIv ?? undefined,
     cipherHash: row.cipherHash ?? undefined,
     purchased,
-    owned: walletAddress === row.ownerAddress,
+    owned: walletAddress?.toLowerCase() === row.ownerAddress.toLowerCase(),
     active: row.active,
   }
+}
+
+function storageIdentity(report: Report) {
+  if (!report.blobAccount || !report.blobName) return null
+  return `${report.network ?? 'testnet'}:${report.blobAccount.toLowerCase()}:${report.blobName}`
+}
+
+export function mergeCatalogReports(...sources: Report[][]) {
+  const reportsById = new Map<string, Report>()
+  const storageIds = new Set<string>()
+
+  for (const source of sources) {
+    for (const report of source) {
+      const storageId = storageIdentity(report)
+      if (reportsById.has(report.id) || (storageId && storageIds.has(storageId))) continue
+      reportsById.set(report.id, report)
+      if (storageId) storageIds.add(storageId)
+    }
+  }
+
+  return Array.from(reportsById.values()).sort((left, right) => {
+    return Date.parse(right.createdAt) - Date.parse(left.createdAt)
+  })
 }
 
 function withWalletFlags(report: Report, walletAddress?: string | null): Report {
@@ -39,34 +62,47 @@ function withWalletFlags(report: Report, walletAddress?: string | null): Report 
   return { ...report, owned, purchased: report.purchased ?? false }
 }
 
-export async function listReports(input: { query?: string; owner?: string; walletAddress?: string | null }) {
-  if (!process.env.DATABASE_URL) {
-    const legacy = await listLegacyReports({ query: input.query, owner: input.owner })
-    return legacy.map((report) => withWalletFlags(report, input.walletAddress))
+async function listDatabaseReports(input: { query?: string; owner?: string; walletAddress?: string | null }) {
+  const filters = [eq(reports.status, 'active'), eq(reports.active, true)]
+  if (input.owner) filters.push(eq(reports.ownerAddress, input.owner))
+  if (input.query) {
+    const query = `%${input.query}%`
+    const search = or(ilike(reports.title, query), ilike(reports.description, query))
+    if (search) filters.push(search)
   }
 
-  try {
-    const filters = [eq(reports.status, 'active'), eq(reports.active, true)]
-    if (input.owner) filters.push(eq(reports.ownerAddress, input.owner))
-    if (input.query) {
-      const query = `%${input.query}%`
-      const search = or(ilike(reports.title, query), ilike(reports.description, query))
-      if (search) filters.push(search)
+  const rows = await getDb().select().from(reports).where(and(...filters)).orderBy(desc(reports.createdAt)).limit(100)
+  if (!input.walletAddress) return rows.map((row) => toReport(row))
+
+  const ownedPurchases = await getDb().select({ reportId: purchases.reportId }).from(purchases).where(eq(purchases.buyerAddress, input.walletAddress))
+  const purchasedIds = new Set(ownedPurchases.map((item) => item.reportId))
+  return rows.map((row) => toReport(row, input.walletAddress, purchasedIds.has(row.id)))
+}
+
+export async function listReports(input: { query?: string; owner?: string; walletAddress?: string | null }) {
+  const legacyReports = () => listLegacyReports({ query: input.query, owner: input.owner })
+    .then((items) => items.map((report) => withWalletFlags(report, input.walletAddress)))
+
+  if (!process.env.DATABASE_URL) return legacyReports()
+
+  const [database, legacy] = await Promise.allSettled([
+    listDatabaseReports(input),
+    legacyReports(),
+  ])
+
+  if (database.status === 'fulfilled') {
+    if (legacy.status === 'fulfilled') {
+      return mergeCatalogReports(database.value, legacy.value)
     }
-    const rows = await getDb().select().from(reports).where(and(...filters)).orderBy(desc(reports.createdAt)).limit(100)
-    if (rows.length === 0) {
-      const legacy = await listLegacyReports({ query: input.query, owner: input.owner })
-      return legacy.map((report) => withWalletFlags(report, input.walletAddress))
-    }
-    if (!input.walletAddress) return rows.map((row) => toReport(row))
-    const ownedPurchases = await getDb().select({ reportId: purchases.reportId }).from(purchases).where(eq(purchases.buyerAddress, input.walletAddress))
-    const purchasedIds = new Set(ownedPurchases.map((item) => item.reportId))
-    return rows.map((row) => toReport(row, input.walletAddress, purchasedIds.has(row.id)))
-  } catch (error) {
-    console.warn('Falling back to legacy registry reports:', error)
-    const legacy = await listLegacyReports({ query: input.query, owner: input.owner })
-    return legacy.map((report) => withWalletFlags(report, input.walletAddress))
+    console.warn('Legacy registry reports are temporarily unavailable:', legacy.reason)
+    return database.value
   }
+  if (legacy.status === 'fulfilled') {
+    console.warn('Database reports are temporarily unavailable:', database.reason)
+    return legacy.value
+  }
+
+  throw database.reason
 }
 
 export async function findReport(id: string, walletAddress?: string | null) {

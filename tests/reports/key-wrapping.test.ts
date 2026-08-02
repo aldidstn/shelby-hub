@@ -42,7 +42,9 @@ describe('premium report key wrapping', () => {
   it('rejects modified wrapped keys', async () => {
     const generated = await createReportDataKey('report-1')
     const parts = generated.wrappedKey.split('.')
-    parts[3] = `${parts[3].slice(0, -1)}${parts[3].endsWith('A') ? 'B' : 'A'}`
+    const ciphertext = Buffer.from(parts[3], 'base64url')
+    ciphertext[0] ^= 1
+    parts[3] = ciphertext.toString('base64url')
 
     await expect(unwrapReportDataKey('report-1', parts.join('.'), generated.wrappingKeyId)).rejects.toThrow()
   })
