@@ -44,7 +44,7 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
   const canDownload = hasBlobFile && (report.access === 'free' || isUnlocked)
 
   function handleShare() {
-    const url = `${window.location.origin}/reports/${report.id}`
+    const url = `${window.location.origin}/reports/${encodeURIComponent(report.id)}`
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)

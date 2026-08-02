@@ -2,17 +2,17 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { REPORT_CONTENT, STATIC_REPORTS, type ContentBlock } from '@/features/reports/data/content'
 import { ReaderActions } from '@/features/reports/components/ReaderActions'
-import { BlobReaderPage } from '@/features/reports/components/BlobReaderPage'
-import { LockedReport } from '@/features/reports/components/LockedReport'
+import { SharedReportPreview } from '@/features/reports/components/SharedReportPreview'
 import { getOptionalSession } from '@/server/auth/session'
 import { findReport } from '@/server/reports/repository'
 
 interface Props {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string[] }>
 }
 
 export default async function ReportReaderPage({ params }: Props) {
-  const { id } = await params
+  const { id: segments } = await params
+  const id = segments.join('/')
 
   const content = REPORT_CONTENT[id]
   const report = STATIC_REPORTS.find((r) => r.id === id)
@@ -21,10 +21,7 @@ export default async function ReportReaderPage({ params }: Props) {
     const session = await getOptionalSession()
     const indexed = await findReport(id, session?.walletAddress)
     if (!indexed || !indexed.blobAccount || !indexed.blobName || indexed.active === false) notFound()
-    if (indexed.access === 'premium' && indexed.encryptionVersion !== 'ace-ibe-v1' && !indexed.purchased && !indexed.owned) {
-      return <LockedReport title={indexed.title} />
-    }
-    return <BlobReaderPage report={indexed} />
+    return <SharedReportPreview report={indexed} />
   }
 
   const readableReports = STATIC_REPORTS.filter((r) => Boolean(REPORT_CONTENT[r.id]))
