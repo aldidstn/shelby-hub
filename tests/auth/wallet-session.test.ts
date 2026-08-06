@@ -25,7 +25,7 @@ describe('wallet session authentication', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const signIn = vi.fn().mockResolvedValue({ signature: 'signed' }) as unknown as WalletContextState['signIn']
-    const input = { accountAddress: address, walletName: 'Petra', signIn }
+    const input = { accountAddress: address, walletName: 'Petra', signIn, network: 'shelbynet' as const }
     const results = await Promise.all([
       authenticateWalletSession(input),
       authenticateWalletSession(input),
@@ -37,5 +37,9 @@ describe('wallet session authentication', () => {
     expect(fetchMock).toHaveBeenCalledTimes(4)
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/auth/challenge')).toHaveLength(1)
     expect(fetchMock.mock.calls.filter(([url]) => url === '/api/auth/verify')).toHaveLength(1)
+    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({ network: 'shelbynet' }),
+    })
   })
 })

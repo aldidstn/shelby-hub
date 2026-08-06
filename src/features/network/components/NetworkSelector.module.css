@@ -17,6 +17,10 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-pink) 11%, transparent), inset 0 1px 0 var(--glass-highlight);
 }
 
+.selector.error {
+  border-color: color-mix(in srgb, var(--semantic-negative) 58%, transparent);
+}
+
 .dot {
   width: .42rem;
   height: .42rem;
@@ -43,6 +47,20 @@
   font: 650 .75rem var(--font-geist);
   cursor: pointer;
   appearance: none;
+}
+
+.select:disabled { cursor: wait; opacity: .72; }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .chevron {

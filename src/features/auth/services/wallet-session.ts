@@ -1,5 +1,6 @@
 import { serializeSignInOutput } from '@aptos-labs/siwa'
 import type { WalletContextState } from '@aptos-labs/wallet-adapter-react'
+import type { ShelbyNetwork } from '@/features/reports/types/report'
 import { normalizeAddress } from '@/lib/aptos/client'
 
 type WalletSignIn = WalletContextState['signIn']
@@ -8,6 +9,7 @@ interface AuthenticateWalletSessionInput {
   accountAddress: string
   walletName: string
   signIn: WalletSignIn
+  network: ShelbyNetwork
 }
 
 let databaseSessionSupport: boolean | null = null
@@ -40,7 +42,11 @@ async function performAuthentication(input: AuthenticateWalletSessionInput) {
     }
   }
 
-  const challengeResponse = await fetch('/api/auth/challenge', { method: 'POST' })
+  const challengeResponse = await fetch('/api/auth/challenge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ network: input.network }),
+  })
   const challenge = await challengeResponse.json() as { input?: Parameters<WalletSignIn>[0]['input']; error?: string }
   if (!challengeResponse.ok || !challenge.input) throw new Error(challenge.error ?? 'Could not create sign-in challenge')
 
@@ -62,12 +68,13 @@ async function performAuthentication(input: AuthenticateWalletSessionInput) {
 
 export function authenticateWalletSession(input: AuthenticateWalletSessionInput) {
   const address = normalizeAddress(input.accountAddress)
-  const existing = authenticationInFlight.get(address)
+  const requestKey = `${address}:${input.network}`
+  const existing = authenticationInFlight.get(requestKey)
   if (existing) return existing
 
   const request = performAuthentication(input).finally(() => {
-    if (authenticationInFlight.get(address) === request) authenticationInFlight.delete(address)
+    if (authenticationInFlight.get(requestKey) === request) authenticationInFlight.delete(requestKey)
   })
-  authenticationInFlight.set(address, request)
+  authenticationInFlight.set(requestKey, request)
   return request
 }
