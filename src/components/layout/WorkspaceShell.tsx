@@ -3,6 +3,8 @@
 import { FormEvent, ReactNode, Suspense, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Sidebar } from './Sidebar'
+import { NetworkSelector } from '@/features/network/components/NetworkSelector'
+import { ShelbyNetworkProvider } from '@/features/network/NetworkProvider'
 import styles from './WorkspaceShell.module.css'
 
 const PAGE_LABELS: Record<string, string> = {
@@ -29,10 +31,13 @@ function WorkspaceToolbar({ onOpenNavigation }: { onOpenNavigation: () => void }
 
       <SearchForm key={currentQuery} initialQuery={currentQuery} onSearch={(query) => router.push(query ? `/reports?q=${encodeURIComponent(query)}` : '/reports')} />
 
-      <div className={styles.context}>
-        <span>{pageRoot ? PAGE_LABELS[pageRoot] : 'Shelby Research'}</span>
-        <i />
-        <strong>Live</strong>
+      <div className={styles.toolbarMeta}>
+        <NetworkSelector />
+        <div className={styles.context}>
+          <span>{pageRoot ? PAGE_LABELS[pageRoot] : 'Shelby Research'}</span>
+          <i />
+          <strong>Live</strong>
+        </div>
       </div>
     </header>
   )
@@ -69,6 +74,14 @@ function SearchForm({ initialQuery, onSearch }: { initialQuery: string; onSearch
 }
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
+  return (
+    <ShelbyNetworkProvider>
+      <WorkspaceShellInner>{children}</WorkspaceShellInner>
+    </ShelbyNetworkProvider>
+  )
+}
+
+function WorkspaceShellInner({ children }: { children: ReactNode }) {
   const [navigationOpen, setNavigationOpen] = useState(false)
 
   return (

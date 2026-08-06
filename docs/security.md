@@ -8,5 +8,6 @@
 - Master-key rotation is versioned. Old `PREMIUM_MASTER_KEY_V*` secrets remain configured while any report references them.
 - Existing ACE-encrypted reports remain on a legacy read-only path. New uploads do not depend on the ACE preview workers.
 - Blob coordinates from client query parameters are never trusted.
+- The workspace network selector never grants access. Premium authorization still uses the report's canonical network metadata, authenticated wallet session, and verified Registry V2 ownership or purchase state.
 - Transaction confirmation verifies success, sender, report, amount, module, and event type.
 - A purchaser can copy plaintext after authorized decryption; DRM is explicitly out of scope.

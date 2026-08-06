@@ -1,0 +1,67 @@
+.selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 2.75rem;
+  padding: 0 2.15rem 0 .75rem;
+  border: 1px solid var(--divider);
+  border-radius: .9rem;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.selector:focus-within {
+  border-color: color-mix(in srgb, var(--brand-pink) 52%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-pink) 11%, transparent), inset 0 1px 0 var(--glass-highlight);
+}
+
+.dot {
+  width: .42rem;
+  height: .42rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--semantic-positive);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--semantic-positive) 58%, transparent);
+}
+
+.label {
+  color: var(--text-muted);
+  font-size: .6875rem;
+  white-space: nowrap;
+}
+
+.select {
+  min-width: 6.9rem;
+  min-height: 2.5rem;
+  margin: 0;
+  border: 0;
+  outline: 0;
+  color: var(--text-primary);
+  background: transparent;
+  font: 650 .75rem var(--font-geist);
+  cursor: pointer;
+  appearance: none;
+}
+
+.chevron {
+  position: absolute;
+  right: .75rem;
+  width: .8rem;
+  height: .8rem;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+@media (max-width: 980px) {
+  .label { display: none; }
+  .selector { padding-left: .65rem; }
+}
+
+@media (max-width: 520px) {
+  .selector { gap: 0; padding-right: 1.65rem; }
+  .dot { display: none; }
+  .select { min-width: 6.75rem; width: 6.75rem; }
+  .chevron { right: .55rem; }
+}

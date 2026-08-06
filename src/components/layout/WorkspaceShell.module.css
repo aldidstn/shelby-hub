@@ -29,11 +29,19 @@
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(16rem, 34rem) 1fr;
+  grid-template-columns: minmax(16rem, 34rem) minmax(0, 1fr);
   align-items: center;
   gap: 1rem;
   padding: .8rem clamp(1rem, 2.4vw, 1.6rem);
   background: color-mix(in srgb, var(--glass-strong) 52%, transparent);
+}
+
+.toolbarMeta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
 }
 
 .menuButton {
@@ -92,9 +100,10 @@
 @media (max-width: 800px) {
   .frame { display: block; padding: .75rem; }
   .workspace { min-height: calc(100vh - 1.5rem); border-radius: 1.1rem; }
-  .toolbar { grid-template-columns: auto minmax(0, 1fr); height: auto; min-height: 4.25rem; gap: .65rem; padding: .7rem; }
+  .toolbar { grid-template-columns: auto minmax(0, 1fr) auto; height: auto; min-height: 4.25rem; gap: .65rem; padding: .7rem; }
   .menuButton { display: grid; }
   .context { display: none; }
+  .toolbarMeta { gap: 0; }
   .searchHint { display: none; }
 }
 

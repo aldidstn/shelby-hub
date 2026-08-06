@@ -10,6 +10,8 @@ import { fetchReports } from '@/features/reports/services/api'
 import { downloadErrorMessage, downloadReport } from '@/features/reports/services/download'
 import { listLocalReports, mergeReportsWithLocal, removeLocalReport, upsertLocalReport } from '@/features/reports/services/local-catalog'
 import { deactivateReportPayload, updateReportPayload } from '@/features/reports/services/registry'
+import { useShelbyNetwork } from '@/features/network/NetworkProvider'
+import { shelbyNetworkLabel } from '@/features/network/network'
 import layout from '@/styles/layout.module.css'
 
 const FILE_TYPE_LABELS: Record<string, string> = {
@@ -23,6 +25,7 @@ type ProfileFilter = 'uploaded' | 'purchased'
 export default function ProfilePage() {
   const { connected, account, signAndSubmitTransaction, signMessage } = useWallet()
   const { authenticate } = useWalletSession()
+  const { network } = useShelbyNetwork()
   const walletAddress = account?.address?.toString()
 
   const [uploadedReports, setUploadedReports] = useState<Report[]>([])
@@ -149,11 +152,13 @@ export default function ProfilePage() {
   }
 
   const address = account.address.toString()
-  const visibleReports = activeFilter === 'uploaded' ? uploadedReports : purchasedReports
-  const premiumUploads = uploadedReports.filter((r) => r.access === 'premium').length
+  const networkUploads = uploadedReports.filter((report) => (report.network ?? 'testnet') === network)
+  const networkPurchases = purchasedReports.filter((report) => (report.network ?? 'testnet') === network)
+  const visibleReports = activeFilter === 'uploaded' ? networkUploads : networkPurchases
+  const premiumUploads = networkUploads.filter((r) => r.access === 'premium').length
   const profileTabs = [
-    { value: 'uploaded' as const, label: `Uploaded files (${uploadedReports.length})` },
-    { value: 'purchased' as const, label: `Purchased (${purchasedReports.length})` },
+    { value: 'uploaded' as const, label: `Uploaded files (${networkUploads.length})` },
+    { value: 'purchased' as const, label: `Purchased (${networkPurchases.length})` },
   ]
 
   return (
@@ -191,7 +196,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-              <span className="text-xs text-text-muted">Testnet</span>
+              <span className="text-xs text-text-muted">Storage: {shelbyNetworkLabel(network)}</span>
             </div>
           </div>
         </div>
@@ -200,8 +205,8 @@ export default function ProfilePage() {
         {loadError && <div role="alert" className="rounded-lg border border-negative/30 bg-negative/10 px-4 py-3 text-xs text-text-secondary">{loadError}</div>}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
-            { label: 'Uploads', value: uploadedReports.length },
-            { label: 'Purchased', value: purchasedReports.length },
+            { label: 'Uploads', value: networkUploads.length },
+            { label: 'Purchased', value: networkPurchases.length },
             { label: 'Premium uploads', value: premiumUploads },
           ].map((stat, i) => (
             <div

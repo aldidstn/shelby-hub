@@ -10,6 +10,7 @@ import { encryptReportFile } from '@/features/reports/services/encryption'
 import { finalizeReport, prepareReport } from '@/features/reports/services/api'
 import { upsertLocalReport } from '@/features/reports/services/local-catalog'
 import { registerLegacyReportPayload, registerReportPayload, verifyReportRegistration } from '@/features/reports/services/registry'
+import { useShelbyNetwork } from '@/features/network/NetworkProvider'
 import layout from '@/styles/layout.module.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -138,6 +139,7 @@ interface UploadModalProps {
 export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   const { connected, account, wallets, connect, signAndSubmitTransaction } = useWallet()
   const { authenticate } = useWalletSession()
+  const { network, setNetwork } = useShelbyNetwork()
 
   // File
   const [file, setFile]         = useState<File | null>(null)
@@ -152,7 +154,6 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   // Upload options
   const [blobName, setBlobName] = useState('')
   const [expiryMs, setExpiryMs] = useState(EXPIRY_PRESETS[1].ms)
-  const [network, setNetwork]   = useState<'shelbynet' | 'testnet'>('testnet')
   const [access, setAccess]     = useState<'free' | 'premium'>('free')
   const [price, setPrice]       = useState('')
 
@@ -628,7 +629,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
 
             {/* Network */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-text-primary">Network</span>
+              <span className="text-xs font-medium text-text-primary">Shelby storage network</span>
               <div className="flex gap-1.5" role="group" aria-label="Network selection">
                 {(['testnet', 'shelbynet'] as const).map((n) => (
                   <button
@@ -647,6 +648,11 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                   </button>
                 ))}
               </div>
+              {network === 'shelbynet' && (
+                <p className="text-xs text-warning">
+                  ShelbyNet browsing and downloads are available. Uploads remain on Testnet until Registry V2 is deployed on ShelbyNet.
+                </p>
+              )}
             </div>
 
             {/* Access / Pricing */}
@@ -774,6 +780,13 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                   </button>
                 ))}
               </div>
+            ) : network === 'shelbynet' ? (
+              <button
+                onClick={() => setNetwork('testnet')}
+                className="w-full py-2.5 rounded-lg text-sm font-semibold bg-pink text-white hover:opacity-90 active:opacity-80 transition-opacity"
+              >
+                Switch to Testnet to upload
+              </button>
             ) : (
               <button
                 onClick={handleUpload}
@@ -805,7 +818,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 <p className="text-xs text-text-muted text-center">Transaction</p>
                 <div className="flex items-center gap-2 bg-surface border border-divider rounded-lg px-3 py-2">
                   <a
-                    href={`https://explorer.aptoslabs.com/txn/${txHash}?network=${network}`}
+                    href={`https://explorer.aptoslabs.com/txn/${txHash}?network=testnet`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 text-xs font-mono text-pink truncate hover:underline"

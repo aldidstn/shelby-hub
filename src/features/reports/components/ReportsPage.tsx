@@ -11,6 +11,8 @@ import { type Report } from '@/features/reports/types/report'
 import { fetchReports } from '@/features/reports/services/api'
 import { listLocalReports, markLocalReportPurchased, mergeReportsWithLocal } from '@/features/reports/services/local-catalog'
 import { useWalletSession } from '@/features/auth/useWalletSession'
+import { useShelbyNetwork } from '@/features/network/NetworkProvider'
+import { shelbyNetworkLabel } from '@/features/network/network'
 import layout from '@/styles/layout.module.css'
 
 export default function ReportsPage() {
@@ -22,6 +24,7 @@ function ReportsPageInner() {
   const urlQuery     = searchParams.get('q') ?? ''
   const { connected, account } = useWallet()
   const { authenticate } = useWalletSession()
+  const { network } = useShelbyNetwork()
   const walletAddress = account?.address?.toString()
 
   const PAGE_SIZE = 12
@@ -67,15 +70,20 @@ function ReportsPageInner() {
   }, [connected, authenticate, loadRegistry])
 
   // Reset page on search/filter change
-  useEffect(() => { setPage(1) }, [urlQuery])
+  useEffect(() => { setPage(1) }, [urlQuery, network])
 
   // All reports come from the live API/registry projection. Uploading belongs in Profile.
   const allReports = useMemo(() => {
     return mergeReportsWithLocal(apiAvailable ? registryReports : [], localReports)
   }, [registryReports, localReports, apiAvailable])
 
+  const networkReports = useMemo(
+    () => allReports.filter((report) => (report.network ?? 'testnet') === network),
+    [allReports, network],
+  )
+
   const filtered = useMemo(() => {
-    let result = [...allReports]
+    let result = [...networkReports]
 
     if (urlQuery.trim()) {
       const q = urlQuery.trim().toLowerCase()
@@ -115,11 +123,11 @@ function ReportsPageInner() {
     }
 
     return result
-  }, [filters, allReports, purchasedIds, urlQuery])
+  }, [filters, networkReports, purchasedIds, urlQuery])
 
-  const freeCount    = allReports.filter((r) => r.access === 'free').length
-  const premiumCount = allReports.filter((r) => r.access === 'premium').length
-  const purchasedCount = allReports.filter((r) => r.purchased || purchasedIds.has(r.id)).length
+  const freeCount    = networkReports.filter((r) => r.access === 'free').length
+  const premiumCount = networkReports.filter((r) => r.access === 'premium').length
+  const purchasedCount = networkReports.filter((r) => r.purchased || purchasedIds.has(r.id)).length
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages)
@@ -151,7 +159,7 @@ function ReportsPageInner() {
         <div>
           <h1 className="text-2xl font-bold text-brown tracking-tight font-display">Reports Library</h1>
           <p className="text-sm text-text-secondary mt-1 leading-relaxed">
-            Research, analysis, and documents from the Shelby community
+            Research, analysis, and documents on {shelbyNetworkLabel(network)}
           </p>
         </div>
       </div>
@@ -160,7 +168,7 @@ function ReportsPageInner() {
       <FilterBar
         filters={filters}
         onChange={handleFiltersChange}
-        totalCount={allReports.length}
+        totalCount={networkReports.length}
         freeCount={freeCount}
         premiumCount={premiumCount}
         purchasedCount={purchasedCount}
