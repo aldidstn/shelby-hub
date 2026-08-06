@@ -12,6 +12,7 @@ import { listLocalReports, mergeReportsWithLocal, removeLocalReport, upsertLocal
 import { deactivateReportPayload, updateReportPayload } from '@/features/reports/services/registry'
 import { useShelbyNetwork } from '@/features/network/NetworkProvider'
 import { shelbyNetworkLabel } from '@/features/network/network'
+import { ensureWalletNetwork } from '@/features/network/wallet-network'
 import layout from '@/styles/layout.module.css'
 
 const FILE_TYPE_LABELS: Record<string, string> = {
@@ -23,7 +24,15 @@ const FILE_TYPE_LABELS: Record<string, string> = {
 type ProfileFilter = 'uploaded' | 'purchased'
 
 export default function ProfilePage() {
-  const { connected, account, signAndSubmitTransaction, signMessage } = useWallet()
+  const {
+    connected,
+    account,
+    wallet,
+    network: walletNetwork,
+    changeNetwork,
+    signAndSubmitTransaction,
+    signMessage,
+  } = useWallet()
   const { authenticate } = useWalletSession()
   const { network } = useShelbyNetwork()
   const walletAddress = account?.address?.toString()
@@ -98,6 +107,7 @@ export default function ProfilePage() {
 
   async function saveEdit() {
     if (!editTarget) return
+    await ensureWalletNetwork({ target: editTarget.network ?? 'testnet', currentNetwork: walletNetwork, wallet, changeNetwork })
     await signAndSubmitTransaction({ data: updateReportPayload(editTarget, editTitle.trim(), editDesc.trim()) })
     const updated = uploadedReports.map((r) =>
       r.id === editTarget.id ? { ...r, title: editTitle, description: editDesc } : r
@@ -112,7 +122,8 @@ export default function ProfilePage() {
     setDeleting(true)
     setDeleteError(null)
     try {
-      await signAndSubmitTransaction({ data: deactivateReportPayload(deleteTarget.id) })
+      await ensureWalletNetwork({ target: deleteTarget.network ?? 'testnet', currentNetwork: walletNetwork, wallet, changeNetwork })
+      await signAndSubmitTransaction({ data: deactivateReportPayload(deleteTarget) })
       const updated = uploadedReports.filter((r) => r.id !== deleteTarget.id)
       removeLocalReport(deleteTarget.id)
       setUploadedReports(updated)

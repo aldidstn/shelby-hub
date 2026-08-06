@@ -27,7 +27,7 @@ export async function GET(_request: NextRequest, context: Context) {
     }
     const onChainPurchase = report.ownerAddress === session.walletAddress || indexedPurchase
       ? false
-      : await hasPurchasedOnChain(session.walletAddress, id)
+      : await hasPurchasedOnChain(session.walletAddress, id, report.network as 'testnet' | 'shelbynet')
     const authorized = canAccessPremiumReport({
       walletAddress: session.walletAddress, ownerAddress: report.ownerAddress, indexedPurchase, onChainPurchase,
     })

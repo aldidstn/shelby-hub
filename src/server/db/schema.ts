@@ -32,6 +32,7 @@ export const purchases = pgTable('purchases', {
   reportId: text('report_id').notNull().references(() => reports.id),
   buyerAddress: text('buyer_address').notNull(),
   sellerAddress: text('seller_address').notNull(),
+  network: text('network').notNull().default('testnet'),
   amountOctas: bigint('amount_octas', { mode: 'number' }).notNull(),
   transactionHash: text('transaction_hash').notNull(),
   transactionVersion: bigint('transaction_version', { mode: 'number' }).notNull(),
@@ -39,7 +40,7 @@ export const purchases = pgTable('purchases', {
   purchasedAt: timestamp('purchased_at', { withTimezone: true }).notNull(),
 }, (table) => [
   uniqueIndex('purchases_buyer_report_idx').on(table.buyerAddress, table.reportId),
-  uniqueIndex('purchases_chain_event_idx').on(table.transactionVersion, table.eventIndex),
+  uniqueIndex('purchases_chain_event_idx').on(table.network, table.transactionVersion, table.eventIndex),
 ])
 
 export const encryptionKeys = pgTable('encryption_keys', {

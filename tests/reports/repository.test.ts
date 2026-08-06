@@ -4,6 +4,7 @@ import type { Report } from '@/features/reports/types/report'
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
   listLegacyReports: vi.fn(),
+  findRegistryV2ReportAcrossNetworks: vi.fn(),
 }))
 
 vi.mock('@/server/db/client', () => ({ getDb: mocks.getDb }))
@@ -11,7 +12,9 @@ vi.mock('@/server/reports/legacy-registry', () => ({
   findLegacyReport: vi.fn(),
   listLegacyReports: mocks.listLegacyReports,
 }))
-vi.mock('@/server/reports/registry-v2', () => ({ findRegistryV2Report: vi.fn() }))
+vi.mock('@/server/reports/registry-v2', () => ({
+  findRegistryV2ReportAcrossNetworks: mocks.findRegistryV2ReportAcrossNetworks,
+}))
 
 import { listReports, mergeCatalogReports } from '@/server/reports/repository'
 

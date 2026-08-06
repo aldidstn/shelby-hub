@@ -1,4 +1,5 @@
-import { aptos, normalizeAddress, registryAddress } from './client'
+import type { ShelbyNetwork } from '@/features/reports/types/report'
+import { aptosForNetwork, normalizeAddress, registryAddress } from './client'
 
 export interface RegistryEventData {
   report_id: string
@@ -32,14 +33,18 @@ export interface VerifiedRegistryEvent {
   timestamp: Date
 }
 
-export function registryFunction(name: string) {
-  return `${registryAddress()}::registry_v2::${name}` as `${string}::${string}::${string}`
+export function registryFunction(name: string, network: ShelbyNetwork = 'testnet') {
+  return `${registryAddress(network)}::registry_v2::${name}` as `${string}::${string}::${string}`
 }
 
-export async function verifyRegistryEvent(transactionHash: string, eventName: string): Promise<VerifiedRegistryEvent> {
-  const transaction = await aptos.getTransactionByHash({ transactionHash })
+export async function verifyRegistryEvent(
+  transactionHash: string,
+  eventName: string,
+  network: ShelbyNetwork = 'testnet',
+): Promise<VerifiedRegistryEvent> {
+  const transaction = await aptosForNetwork(network).getTransactionByHash({ transactionHash })
   if (!('sender' in transaction) || !('events' in transaction) || !transaction.success) throw new Error('Transaction is not a successful user transaction')
-  const type = `${registryAddress()}::registry_v2::${eventName}`
+  const type = `${registryAddress(network)}::registry_v2::${eventName}`
   const eventIndex = transaction.events.findIndex((event) => event.type === type)
   if (eventIndex < 0) throw new Error(`Transaction does not contain ${eventName}`)
   return {
@@ -52,10 +57,10 @@ export async function verifyRegistryEvent(transactionHash: string, eventName: st
   }
 }
 
-export async function hasPurchasedOnChain(buyer: string, reportId: string) {
-  const result = await aptos.view({ payload: {
-    function: registryFunction('has_purchased'), typeArguments: [],
-    functionArguments: [registryAddress(), normalizeAddress(buyer), reportId],
+export async function hasPurchasedOnChain(buyer: string, reportId: string, network: ShelbyNetwork = 'testnet') {
+  const result = await aptosForNetwork(network).view({ payload: {
+    function: registryFunction('has_purchased', network), typeArguments: [],
+    functionArguments: [registryAddress(network), normalizeAddress(buyer), reportId],
   } })
   return result[0] === true
 }

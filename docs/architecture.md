@@ -12,6 +12,6 @@ The database is a projection, not the payment authority. Any access decision inv
 
 ## Network selection
 
-The workspace network dropdown selects the Shelby storage catalog. Reports are filtered by their immutable `network` metadata, and downloads always use the network recorded on the report rather than trusting the current dropdown value. The selection is a local browsing preference and is never used for premium authorization.
+The workspace network dropdown selects a complete storage and settlement environment. Reports are filtered by their immutable `network` metadata, and uploads, purchases, downloads, Registry V2 verification, and purchase authorization all use the network recorded on the report or selected during upload. Premium authorization never trusts a query parameter or a mutable browsing preference.
 
-Registry V2, wallet authentication, and purchase settlement currently remain on Aptos Testnet. Shelby Testnet supports uploads and downloads. ShelbyNet is available for browsing and downloading existing records, but new uploads remain disabled there until Registry V2 is separately deployed and indexed on ShelbyNet. This distinction prevents a storage-network choice from being mistaken for an Aptos settlement-chain switch.
+Registry V2 is deployed independently on Aptos Testnet and ShelbyNet. Before a report transaction, the client asks the wallet to switch to the report's paired Aptos network. The backend verifies the resulting transaction against that network's Registry V2 module, and the indexer stores independent cursors for both chains. Downloads always use the report's canonical Shelby network. Wallet authentication remains a network-independent proof of wallet control; it does not grant report access by itself.

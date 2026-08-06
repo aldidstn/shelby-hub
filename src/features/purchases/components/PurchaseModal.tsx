@@ -6,6 +6,7 @@ import { type Report } from '@/features/reports/types/report'
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import { confirmPurchase } from '../services/api'
 import { purchaseReportPayload, verifyPurchaseTransaction } from '../services/registry'
+import { ensureWalletNetwork } from '@/features/network/wallet-network'
 import layout from '@/styles/layout.module.css'
 
 type PurchaseState = 'idle' | 'confirm' | 'pending' | 'success' | 'error'
@@ -17,7 +18,16 @@ interface PurchaseModalProps {
 }
 
 export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseModalProps) {
-  const { connected, account, signAndSubmitTransaction, wallets, connect } = useWallet()
+  const {
+    connected,
+    account,
+    wallet,
+    network: walletNetwork,
+    changeNetwork,
+    signAndSubmitTransaction,
+    wallets,
+    connect,
+  } = useWallet()
   const [state, setState] = useState<PurchaseState>('confirm')
   const [txHash, setTxHash] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -65,8 +75,10 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
     try {
       if (report!.encryptionVersion === 'aes-256-gcm-v1') await authenticate()
       else await authenticate().catch(() => undefined)
+      const reportNetwork = report!.network ?? 'testnet'
+      await ensureWalletNetwork({ target: reportNetwork, currentNetwork: walletNetwork, wallet, changeNetwork })
       const response = await signAndSubmitTransaction({
-        data: purchaseReportPayload(report!.id),
+        data: purchaseReportPayload(report!.id, reportNetwork),
       })
       await verifyPurchaseTransaction({
         transactionHash: response.hash,
@@ -74,6 +86,7 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
         buyerAddress: account.address.toString(),
         sellerAddress: report!.authorAddress,
         amountOctas: Math.round((report!.price ?? 0) * 1e8),
+        network: reportNetwork,
       })
       await confirmPurchase(report!.id, response.hash).catch(() => undefined)
       setTxHash(response.hash)

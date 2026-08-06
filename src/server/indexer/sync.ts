@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
-import { aptos, normalizeAddress, registryAddress } from '@/lib/aptos/client'
+import type { ShelbyNetwork } from '@/features/reports/types/report'
+import { aptos, aptosForNetwork, normalizeAddress, registryAddress } from '@/lib/aptos/client'
 import type { RegistryEventData } from '@/lib/aptos/registry-v2'
 import { getDb } from '@/server/db/client'
 import { indexerState, purchases, reports } from '@/server/db/schema'
@@ -18,8 +19,12 @@ interface IndexedEvent {
 
 interface IndexedTransaction { version: string }
 
-const INDEXER_KEY = 'registry_v2_event_version'
 const LEGACY_KEY = 'registry_v1_imported'
+
+const NETWORK_INDEXERS: Record<ShelbyNetwork, string> = {
+  testnet: process.env.APTOS_INDEXER_URL ?? 'https://api.testnet.aptoslabs.com/v1/graphql',
+  shelbynet: process.env.SHELBYNET_INDEXER_URL ?? 'https://api.shelbynet.shelby.xyz/v1/graphql',
+}
 
 function indexedEncryptionVersion(value: number | string | undefined) {
   const version = Number(value ?? 0)
@@ -39,8 +44,8 @@ async function saveCursor(key: string, value: string) {
   })
 }
 
-async function fetchTransactions(afterVersion: string): Promise<IndexedTransaction[]> {
-  const endpoint = process.env.APTOS_INDEXER_URL ?? 'https://api.testnet.aptoslabs.com/v1/graphql'
+async function fetchTransactions(network: ShelbyNetwork, afterVersion: string): Promise<IndexedTransaction[]> {
+  const endpoint = NETWORK_INDEXERS[network]
   const query = `query RegistryTransactions($version: bigint!, $address: String!) {
     user_transactions(where: {version: {_gt: $version}, entry_function_contract_address: {_eq: $address}, entry_function_module_name: {_eq: "registry_v2"}}, order_by: {version: asc}, limit: 100) {
       version
@@ -48,7 +53,7 @@ async function fetchTransactions(afterVersion: string): Promise<IndexedTransacti
   }`
   const response = await fetch(endpoint, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, variables: { version: afterVersion, address: registryAddress() } }),
+    body: JSON.stringify({ query, variables: { version: afterVersion, address: registryAddress(network) } }),
     cache: 'no-store',
   })
   if (!response.ok) throw new Error(`Aptos indexer returned HTTP ${response.status}`)
@@ -57,18 +62,19 @@ async function fetchTransactions(afterVersion: string): Promise<IndexedTransacti
   return result.data?.user_transactions ?? []
 }
 
-async function eventsForTransaction(version: string): Promise<IndexedEvent[]> {
-  const transaction = await aptos.getTransactionByVersion({ ledgerVersion: BigInt(version) })
+async function eventsForTransaction(network: ShelbyNetwork, version: string): Promise<IndexedEvent[]> {
+  const address = registryAddress(network)
+  const transaction = await aptosForNetwork(network).getTransactionByVersion({ ledgerVersion: BigInt(version) })
   if (!('events' in transaction)) return []
-  const prefix = `${registryAddress()}::registry_v2::`
+  const prefix = `${address}::registry_v2::`
   return transaction.events.flatMap((event, eventIndex) => event.type.startsWith(prefix) ? [{
-    account_address: registryAddress(), creation_number: '0', event_index: eventIndex,
+    account_address: address, creation_number: '0', event_index: eventIndex,
     sequence_number: '0', transaction_block_height: '0', transaction_version: version,
     type: event.type, data: event.data as unknown as RegistryEventData,
   }] : [])
 }
 
-async function applyEvent(event: IndexedEvent) {
+async function applyEvent(event: IndexedEvent, network: ShelbyNetwork) {
   const name = event.type.split('::').at(-1)
   const data = event.data
   if (name === 'ReportRegistered') {
@@ -116,6 +122,7 @@ async function applyEvent(event: IndexedEvent) {
       reportId: data.report_id,
       buyerAddress: normalizeAddress(data.buyer!),
       sellerAddress: normalizeAddress(data.seller!),
+      network,
       amountOctas: Number(data.amount),
       transactionHash: `version:${event.transaction_version}`,
       transactionVersion: Number(event.transaction_version),
@@ -125,24 +132,38 @@ async function applyEvent(event: IndexedEvent) {
   }
 }
 
-export async function syncRegistryV2() {
-  let current = await cursor(INDEXER_KEY)
+async function syncRegistryNetwork(network: ShelbyNetwork) {
+  const indexerKey = `registry_v2_${network}_event_version`
+  let current = await cursor(indexerKey)
   let processed = 0
   while (true) {
-    const transactions = await fetchTransactions(current)
+    const transactions = await fetchTransactions(network, current)
     if (transactions.length === 0) break
     for (const transaction of transactions) {
-      for (const event of await eventsForTransaction(transaction.version)) {
+      for (const event of await eventsForTransaction(network, transaction.version)) {
         // Event handlers are idempotent, so replaying after a crash is safe.
-        await applyEvent(event)
+        await applyEvent(event, network)
         processed += 1
       }
-      await saveCursor(INDEXER_KEY, transaction.version)
+      await saveCursor(indexerKey, transaction.version)
       current = transaction.version
     }
     if (transactions.length < 100) break
   }
   return processed
+}
+
+export async function syncRegistryV2() {
+  const results = await Promise.allSettled([
+    syncRegistryNetwork('testnet'),
+    syncRegistryNetwork('shelbynet'),
+  ])
+  const failures = results.filter((result) => result.status === 'rejected')
+  if (failures.length === results.length) {
+    throw new AggregateError(failures.map((result) => result.reason), 'Registry V2 indexing failed on every network')
+  }
+  for (const failure of failures) console.error('Registry V2 network indexing failed', failure.reason)
+  return results.reduce((total, result) => total + (result.status === 'fulfilled' ? result.value : 0), 0)
 }
 
 export async function importLegacyRegistry() {

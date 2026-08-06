@@ -15,6 +15,13 @@
       "when": 1781957232337,
       "tag": "0001_motionless_deadpool",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785991061540,
+      "tag": "0002_warm_charles_xavier",
+      "breakpoints": true
     }
   ]
 }

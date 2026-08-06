@@ -1,4 +1,4 @@
-import { aptos, normalizeAddress, registryAddress } from '@/lib/aptos/client'
+import { aptosForNetwork, normalizeAddress, registryAddress, registryConfigured } from '@/lib/aptos/client'
 import { hasPurchasedOnChain, registryFunction } from '@/lib/aptos/registry-v2'
 import type { Report } from '@/features/reports/types/report'
 
@@ -33,15 +33,19 @@ function encryptionVersion(value: string | number | undefined): Report['encrypti
   return undefined
 }
 
-export async function findRegistryV2Report(id: string, walletAddress?: string | null): Promise<Report | null> {
-  if (!process.env.NEXT_PUBLIC_REGISTRY_V2_ADDRESS) return null
+export async function findRegistryV2Report(
+  id: string,
+  walletAddress?: string | null,
+  network: NonNullable<Report['network']> = 'testnet',
+): Promise<Report | null> {
+  if (!registryConfigured(network)) return null
 
   try {
-    const result = await aptos.view({
+    const result = await aptosForNetwork(network).view({
       payload: {
-        function: registryFunction('get_report'),
+        function: registryFunction('get_report', network),
         typeArguments: [],
-        functionArguments: [registryAddress(), decodeURIComponent(id)],
+        functionArguments: [registryAddress(network), decodeURIComponent(id)],
       },
     })
     const entry = result[0] as RegistryV2ReportEntry | undefined
@@ -54,7 +58,7 @@ export async function findRegistryV2Report(id: string, walletAddress?: string | 
       wallet
       && entry.access === 'premium'
       && !owned
-      && await hasPurchasedOnChain(wallet, entry.id),
+      && await hasPurchasedOnChain(wallet, entry.id, network),
     )
 
     return {
@@ -74,7 +78,7 @@ export async function findRegistryV2Report(id: string, walletAddress?: string | 
       tags: entry.tags ?? [],
       blobAccount: owner,
       blobName: entry.blob_name,
-      network: entry.network as Report['network'],
+      network,
       encryptionVersion: encryptionVersion(entry.encryption_version),
       cipherHash: entry.cipher_hash || undefined,
       purchased,
@@ -84,4 +88,9 @@ export async function findRegistryV2Report(id: string, walletAddress?: string | 
   } catch {
     return null
   }
+}
+
+export async function findRegistryV2ReportAcrossNetworks(id: string, walletAddress?: string | null) {
+  return await findRegistryV2Report(id, walletAddress, 'testnet')
+    ?? await findRegistryV2Report(id, walletAddress, 'shelbynet')
 }

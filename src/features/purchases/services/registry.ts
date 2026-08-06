@@ -1,12 +1,11 @@
-import { aptos, normalizeAddress } from '@/lib/aptos/client'
+import type { ShelbyNetwork } from '@/features/reports/types/report'
+import { aptosForNetwork, normalizeAddress, registryAddress } from '@/lib/aptos/client'
 
-const ADDRESS = process.env.NEXT_PUBLIC_REGISTRY_V2_ADDRESS ?? ''
-
-export function purchaseReportPayload(reportId: string) {
-  if (!ADDRESS) throw new Error('Registry V2 is not configured')
+export function purchaseReportPayload(reportId: string, network: ShelbyNetwork) {
+  const address = registryAddress(network)
   return {
-    function: `${ADDRESS}::registry_v2::purchase_report` as `${string}::${string}::${string}`,
-    typeArguments: [], functionArguments: [ADDRESS, reportId],
+    function: `${address}::registry_v2::purchase_report` as `${string}::${string}::${string}`,
+    typeArguments: [], functionArguments: [address, reportId],
   }
 }
 
@@ -16,13 +15,14 @@ export async function verifyPurchaseTransaction(input: {
   buyerAddress: string
   sellerAddress: string
   amountOctas: number
+  network: ShelbyNetwork
 }) {
-  if (!ADDRESS) throw new Error('Registry V2 is not configured')
-  const transaction = await aptos.waitForTransaction({ transactionHash: input.transactionHash })
+  const address = registryAddress(input.network)
+  const transaction = await aptosForNetwork(input.network).waitForTransaction({ transactionHash: input.transactionHash })
   if (!('success' in transaction) || !transaction.success || !('events' in transaction)) {
     throw new Error('Purchase transaction failed')
   }
-  const eventType = `${normalizeAddress(ADDRESS)}::registry_v2::ReportPurchased`
+  const eventType = `${address}::registry_v2::ReportPurchased`
   const event = transaction.events.find((item) => item.type === eventType)
   if (!event) throw new Error('Purchase event was not emitted')
   const data = event.data as {
