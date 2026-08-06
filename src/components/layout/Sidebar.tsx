@@ -54,11 +54,6 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
 
       <div className={styles.spacer}/>
 
-      <div className={styles.statusCard}>
-        <span className={styles.statusDot}/>
-        <div><strong>Aptos Testnet</strong><small>Network connected</small></div>
-      </div>
-
       <div className={styles.utilityRow}>
         <span>Appearance</span><ThemeToggle/>
       </div>
