@@ -12,6 +12,12 @@ import { upsertLocalReport } from '@/features/reports/services/local-catalog'
 import { isRegistryV2Configured, registerLegacyReportPayload, registerReportPayload, verifyReportRegistration } from '@/features/reports/services/registry'
 import { useShelbyNetwork } from '@/features/network/NetworkProvider'
 import { ensureWalletNetwork } from '@/features/network/wallet-network'
+import {
+  assertUploadFunding,
+  describeUploadFailure,
+  type SecureUploadStage,
+  uploadFundingUrls,
+} from '@/features/reports/services/upload-prerequisites'
 import layout from '@/styles/layout.module.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -178,6 +184,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
   const isError     = progress?.step === 'error'
   const fileInfo    = file ? ACCEPTED_TYPES[file.type] : null
   const registryAvailable = isRegistryV2Configured(network)
+  const fundingUrls = account ? uploadFundingUrls(account.address.toString(), network) : null
 
   // Focus trap
   useEffect(() => {
@@ -323,7 +330,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
       onUploadComplete(uploadedReport)
     }
 
-    let secureStage: 'auth' | 'prepare' | 'encrypt' | 'network' | 'upload' | 'publish' | 'finalize' = 'auth'
+    let secureStage: SecureUploadStage = 'auth'
 
     try {
       if (access === 'free' && !registryAvailable && network === 'testnet') {
@@ -333,6 +340,9 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
 
       secureStage = 'auth'
       await authenticate()
+      secureStage = 'network'
+      await ensureWalletNetwork({ target: network, currentNetwork: walletNetwork, wallet, changeNetwork })
+      await assertUploadFunding(network, walletAddress)
       secureStage = 'prepare'
       const prepared = await prepareReport({
         title: displayTitle, description: description.trim(), reportType, access,
@@ -365,8 +375,6 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         }
       }
 
-      secureStage = 'network'
-      await ensureWalletNetwork({ target: network, currentNetwork: walletNetwork, wallet, changeNetwork })
       secureStage = 'upload'
       const result = await uploadToShelby({
         file: uploadFile,
@@ -420,7 +428,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         }
       }
 
-      const msg = err instanceof Error ? err.message : 'Unexpected error'
+      const msg = describeUploadFailure(err, secureStage)
       setProgress((p) => p ? { ...p, step: 'error', errorMessage: msg } : null)
     }
   }
@@ -772,6 +780,16 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 )}
                 {isError && progress.errorMessage && (
                   <p className="text-xs text-negative">{progress.errorMessage}</p>
+                )}
+                {isError && network === 'shelbynet' && fundingUrls && (
+                  <div className="flex flex-wrap gap-3 text-xs">
+                    <a className="font-medium text-pink hover:underline" href={fundingUrls.apt} target="_blank" rel="noreferrer">
+                      Fund APT
+                    </a>
+                    <a className="font-medium text-pink hover:underline" href={fundingUrls.shelbyUsd} target="_blank" rel="noreferrer">
+                      Fund ShelbyUSD
+                    </a>
+                  </div>
                 )}
               </div>
             )}
