@@ -292,7 +292,7 @@ export function LandingPage() {
           <Link href="/reports">Reports</Link>
           <Link href="/intel">Intel</Link>
           <a href="https://docs.shelby.xyz/" target="_blank" rel="noreferrer">Docs</a>
-          <a href="https://github.com/shelby" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://github.com/aldidstn/shelby-hub" target="_blank" rel="noreferrer">GitHub</a>
         </nav>
         <small>© {new Date().getFullYear()} Shelby Scribe</small>
       </footer>

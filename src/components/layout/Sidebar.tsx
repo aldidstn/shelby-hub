@@ -67,7 +67,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         <button className={styles.connectButton} onClick={() => setWalletOpen(true)}>Connect wallet</button>
       )}
 
-      <div className={styles.sidebarLinks}><a href="https://docs.shelby.xyz/" target="_blank" rel="noreferrer">Docs</a><a href="https://github.com/shelby" target="_blank" rel="noreferrer">GitHub</a></div>
+      <div className={styles.sidebarLinks}><a href="https://docs.shelby.xyz/" target="_blank" rel="noreferrer">Docs</a><a href="https://github.com/aldidstn/shelby-hub" target="_blank" rel="noreferrer">GitHub</a></div>
     </aside>
 
     <WalletConnectDialog open={walletOpen} onClose={() => setWalletOpen(false)} />
