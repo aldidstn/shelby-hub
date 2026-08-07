@@ -86,12 +86,6 @@
   transition: color .15s, border-color .15s, transform .15s;
 }
 
-.closeButton svg,
-.primaryButton svg {
-  width: 1rem;
-  height: 1rem;
-}
-
 .closeButton:hover {
   color: var(--text-primary);
   border-color: color-mix(in srgb, var(--brand-pink) 45%, var(--divider));

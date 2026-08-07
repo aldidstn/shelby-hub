@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import styles from './LandingPage.module.css'
 
 const LandingWalletDialog = dynamic(
@@ -113,14 +114,14 @@ export function LandingPage() {
           <a href="#why" onClick={closeMenu}>Why Shelby</a>
           <a href="#intelligence" onClick={closeMenu}>Intelligence</a>
           <a href="#architecture" onClick={closeMenu}>Architecture</a>
-          <a href="https://docs.shelby.xyz/" target="_blank" rel="noreferrer" onClick={closeMenu}>SDK Docs ↗</a>
-          <button className={styles.mobileNavCta} onClick={enterWorkspace}>Connect & explore <span>↗</span></button>
+          <a href="https://docs.shelby.xyz/" target="_blank" rel="noreferrer" onClick={closeMenu}>SDK Docs <MaterialIcon name="open_in_new" size={16} /></a>
+          <button className={styles.mobileNavCta} onClick={enterWorkspace}>Connect & explore <MaterialIcon name="arrow_outward" size={18} /></button>
         </nav>
         <div className={styles.headerActions}>
           <ThemeToggle />
           <button className={styles.headerCta} onClick={enterWorkspace}>Connect & explore</button>
           <button className={styles.menuButton} onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="landing-navigation" aria-label="Toggle navigation">
-            <span /><span />
+            <MaterialIcon name={menuOpen ? 'close' : 'menu'} size={24} />
           </button>
         </div>
       </header>
@@ -145,7 +146,7 @@ export function LandingPage() {
             <p className={styles.heroText}>Reports and smart-money data, delivered through Shelby and settled on Aptos.</p>
             <div className={styles.heroActions}>
               <button className={styles.primaryButton} onClick={enterWorkspace}>
-                <span>Connect & explore</span><b>↗</b>
+                <span>Connect & explore</span><b><MaterialIcon name="arrow_outward" size={18} /></b>
               </button>
               <a className={styles.secondaryButton} href="https://docs.shelby.xyz/" target="_blank" rel="noreferrer">SDK docs</a>
             </div>
@@ -154,7 +155,7 @@ export function LandingPage() {
         </section>
 
         <section className={styles.marquee} aria-label="Platform characteristics">
-          <span className="sr-only">{MARQUEE_ITEMS.join(', ')}</span>
+          <span className={styles.visuallyHidden}>{MARQUEE_ITEMS.join(', ')}</span>
           <div className={styles.marqueeTrack} aria-hidden="true">
             {Array.from({ length: 8 }).map((_, groupIndex) => (
               <span className={styles.marqueeGroup} key={`marquee-group-${groupIndex}`}>
@@ -185,9 +186,9 @@ export function LandingPage() {
               </div>
               <figcaption>
                 <span><b>01</b> Detect</span>
-                <i>→</i>
+                <MaterialIcon name="arrow_forward" size={16} className={styles.flowArrow} />
                 <span><b>02</b> Verify</span>
-                <i>→</i>
+                <MaterialIcon name="arrow_forward" size={16} className={styles.flowArrow} />
                 <span><b>03</b> Own</span>
               </figcaption>
             </div>
@@ -229,7 +230,7 @@ export function LandingPage() {
                 <p>See where institutional and venture capital is moving this week. Raw transaction arrays, cleaned and structured for immediate algorithmic use.</p>
                 <small>ILLUSTRATIVE LISTING</small>
               </div>
-              <button onClick={enterWorkspace}>Unlock for 2 APT <span>↗</span></button>
+              <button onClick={enterWorkspace}>Unlock for 2 APT <MaterialIcon name="arrow_outward" size={19} /></button>
             </article>
 
             <article className={styles.listingSecondary}>
@@ -240,7 +241,7 @@ export function LandingPage() {
                 <p>A technical breakdown of decentralized AI tokens, hardware-cluster economics, and multi-network infrastructure.</p>
                 <small>ILLUSTRATIVE LISTING</small>
               </div>
-              <Link href="/reports">Stream report instantly <span>→</span></Link>
+              <Link href="/reports">Stream report instantly <MaterialIcon name="arrow_forward" size={19} /></Link>
             </article>
           </div>
         </section>
@@ -280,7 +281,7 @@ export function LandingPage() {
           <p className={styles.eyebrow}>The research desk is open</p>
           <h2>Find the signal.<br /><span>Own the source.</span></h2>
           <p>Explore independent intelligence or publish research directly to the people who value it.</p>
-          <button className={styles.primaryButton} onClick={enterWorkspace}><span>Connect wallet & explore</span><b>↗</b></button>
+          <button className={styles.primaryButton} onClick={enterWorkspace}><span>Connect wallet & explore</span><b><MaterialIcon name="arrow_outward" size={18} /></b></button>
           <div className={styles.ctaProof}><i /> Encrypted on Shelby · Settled on Aptos</div>
         </section>
       </main>

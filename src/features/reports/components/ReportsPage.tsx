@@ -7,6 +7,7 @@ import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { FilterBar, type Filters } from '@/features/reports/components/FilterBar'
 import { ReportCard } from '@/features/reports/components/ReportCard'
 import { PurchaseModal } from '@/features/purchases/components/PurchaseModal'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { type Report } from '@/features/reports/types/report'
 import { fetchReports } from '@/features/reports/services/api'
 import { listLocalReports, markLocalReportPurchased, mergeReportsWithLocal } from '@/features/reports/services/local-catalog'
@@ -206,9 +207,7 @@ function ReportsPageInner() {
       {!registryLoading && (
         filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <svg className="w-10 h-10 text-divider" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+            <MaterialIcon name="description" size={40} className="text-divider" />
             <p className="text-sm text-text-muted">No reports match your filters</p>
             <button
               onClick={() => setFilters({ type: 'All', access: 'All', sortBy: 'latest' })}
@@ -244,9 +243,7 @@ function ReportsPageInner() {
                     className="flex items-center justify-center w-12 h-12 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-surface active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                     aria-label="Previous page"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
+                    <MaterialIcon name="chevron_left" size={18} />
                   </button>
 
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
@@ -271,9 +268,7 @@ function ReportsPageInner() {
                     className="flex items-center justify-center w-12 h-12 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-surface active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                     aria-label="Next page"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
+                    <MaterialIcon name="chevron_right" size={18} />
                   </button>
                 </div>
               </div>

@@ -60,6 +60,8 @@ export const metadata: Metadata = {
 
 const themeScript = `(function(){try{var t=localStorage.getItem('shelby-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='dark'}})()`;
 
+const materialSymbolsUrl = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded&icon_names=add,arrow_back,arrow_downward,arrow_forward,arrow_outward,arrow_upward,audio_file,check,check_circle,chevron_left,chevron_right,close,code,content_copy,dark_mode,delete,description,download,error,expand_more,favorite,file_upload,image,info,light_mode,link,lock,menu,mode_edit,monitoring,open_in_new,person,progress_activity,refresh,search,share,table,upload_file,video_file,warning&display=block'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -71,7 +73,12 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${styles.root}`}
     >
-      <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href={materialSymbolsUrl} />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={styles.body}>
         <VantaBackground />
         {children}

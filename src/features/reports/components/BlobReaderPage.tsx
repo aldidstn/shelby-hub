@@ -9,6 +9,7 @@ import type { Report } from '../types/report'
 import { fetchReportBlob, type AceWalletSigner } from '@/features/reports/services/download'
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import layout from '@/styles/layout.module.css'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 
 
 
@@ -124,9 +125,7 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
           href="/reports"
           className="flex items-center gap-2 px-3 py-2.5 mb-3 rounded-lg bg-pink text-white text-xs font-semibold hover:opacity-90 transition-opacity"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
+          <MaterialIcon name="arrow_back" size={17} />
           Back to Library
         </Link>
       </aside>
@@ -139,9 +138,7 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
           href="/reports"
           className="lg:hidden inline-flex items-center gap-2 px-3 py-2 mb-6 rounded-lg bg-pink text-white text-xs font-semibold hover:opacity-90 transition-opacity"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
+          <MaterialIcon name="arrow_back" size={17} />
           Back to Library
         </Link>
 
@@ -181,10 +178,7 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
 
           {loading && (
             <div className="flex items-center gap-2 text-sm text-text-muted py-8">
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
-              </svg>
+              <MaterialIcon name="progress_activity" size={18} className="animate-spin" />
               Loading content from Shelby…
             </div>
           )}
@@ -192,9 +186,7 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
           {fetchError && (
             <div className="flex flex-col gap-3 p-5 rounded-xl bg-surface border border-divider">
               <div className="flex items-center gap-2 text-text-secondary">
-                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                </svg>
+                <MaterialIcon name="warning" size={18} />
                 <p className="text-sm font-medium">Content unavailable</p>
               </div>
               <p className="text-xs text-text-muted leading-relaxed">
@@ -229,9 +221,7 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
           {AUDIO_TYPES.has(fileType) && !fetchError && objectUrl && (
             <div className="p-8 bg-surface rounded-xl border border-divider flex flex-col items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-pink-light flex items-center justify-center">
-                <svg className="w-8 h-8 text-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
-                </svg>
+                <MaterialIcon name="audio_file" size={34} className="text-pink" />
               </div>
               <p className="text-sm font-medium text-text-primary">{title}</p>
               <audio
@@ -255,9 +245,7 @@ export function BlobReaderPage({ report }: BlobReaderPageProps) {
             href="/reports"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-pink text-white text-xs font-semibold hover:opacity-90 transition-opacity"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
+            <MaterialIcon name="arrow_back" size={17} />
             Back to Library
           </Link>
         </footer>

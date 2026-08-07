@@ -13,6 +13,7 @@ import { deactivateReportPayload, updateReportPayload } from '@/features/reports
 import { useShelbyNetwork } from '@/features/network/NetworkProvider'
 import { shelbyNetworkLabel } from '@/features/network/network'
 import { ensureWalletNetwork } from '@/features/network/wallet-network'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import layout from '@/styles/layout.module.css'
 
 const FILE_TYPE_LABELS: Record<string, string> = {
@@ -153,9 +154,7 @@ export default function ProfilePage() {
   if (!connected || !account) {
     return (
       <div className={layout.centered}>
-        <svg className="w-12 h-12 text-divider" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-        </svg>
+        <MaterialIcon name="person" size={48} className="text-divider" />
         <h1 className="text-lg font-semibold text-brown">Your profile</h1>
         <p className="text-sm text-text-secondary">Connect your wallet to view uploads and purchases.</p>
         <Link href="/reports" className="inline-flex h-11 items-center rounded-lg px-4 text-sm font-semibold text-pink hover:bg-pink-light">Browse reports</Link>
@@ -191,16 +190,12 @@ export default function ProfilePage() {
               >
                 {copied ? (
                   <>
-                    <svg key="check" className="w-3.5 h-3.5 text-positive animate-bounce-in" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+                    <MaterialIcon key="check" name="check" size={14} className="text-positive animate-bounce-in" />
                     <span className="text-positive animate-fade-up">Copied!</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+                    <MaterialIcon name="content_copy" size={14} />
                     Copy
                   </>
                 )}
@@ -260,18 +255,14 @@ export default function ProfilePage() {
               onClick={() => setUploadOpen(true)}
               className="inline-flex items-center gap-2 rounded-lg bg-pink px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-pink/20 transition-all duration-150 hover:opacity-90 active:scale-95"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
+              <MaterialIcon name="add" size={16} />
               Upload File
             </button>
           </div>
 
           {visibleReports.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 border border-dashed border-divider rounded-xl">
-              <svg className="w-10 h-10 text-divider" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
+              <MaterialIcon name="upload_file" size={40} className="text-divider" />
               <p className="text-sm text-text-muted">
                 {activeFilter === 'uploaded' ? 'No files uploaded yet' : 'No purchased files yet'}
               </p>
@@ -313,13 +304,9 @@ export default function ProfilePage() {
                     title="Download"
                   >
                     {downloadingId === report.id ? (
-                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
+                      <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
                     ) : (
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                      </svg>
+                      <MaterialIcon name="download" size={14} />
                     )}
                   </button>
 
@@ -330,9 +317,7 @@ export default function ProfilePage() {
                       className="shrink-0 flex items-center gap-1 text-xs text-text-muted hover:text-pink transition-colors px-2 py-1 rounded hover:bg-pink-light"
                       title="Edit"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                      </svg>
+                      <MaterialIcon name="mode_edit" size={14} />
                     </button>
                   )}
 
@@ -343,9 +328,7 @@ export default function ProfilePage() {
                       className="shrink-0 flex items-center gap-1 text-xs text-text-muted hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-red-500/10"
                       title="Deactivate"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                      </svg>
+                      <MaterialIcon name="delete" size={14} />
                     </button>
                   )}
                 </div>
@@ -375,9 +358,7 @@ export default function ProfilePage() {
           >
             <div className="flex items-start gap-3">
               <div className="shrink-0 w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center">
-                <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                </svg>
+                <MaterialIcon name="delete" size={20} className="text-red-400" />
               </div>
               <div className="flex flex-col gap-1">
                 <h2 className="text-sm font-semibold text-text-primary">Deactivate report?</h2>
@@ -403,9 +384,7 @@ export default function ProfilePage() {
                 className="px-4 py-1.5 rounded-md text-sm font-medium bg-red-500 text-white hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-1.5"
               >
                 {deleting && (
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <MaterialIcon name="progress_activity" size={14} className="animate-spin" />
                 )}
                 {deleting ? 'Deactivating…' : 'Deactivate'}
               </button>
@@ -427,9 +406,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-text-primary">Edit File</h2>
               <button onClick={() => setEditTarget(null)} className="text-text-muted hover:text-text-primary transition-colors">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <MaterialIcon name="close" size={16} />
               </button>
             </div>
             <div className="flex flex-col gap-3">

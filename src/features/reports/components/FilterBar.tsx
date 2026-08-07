@@ -26,8 +26,8 @@ const TYPES: Array<ReportType | 'All'> = ['All', 'Research', 'Analysis', 'Intel'
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'latest', label: 'Latest' },
   { value: 'most-downloaded', label: 'Most Downloaded' },
-  { value: 'price-asc', label: 'Price: Low → High' },
-  { value: 'price-desc', label: 'Price: High → Low' },
+  { value: 'price-asc', label: 'Price: Low to High' },
+  { value: 'price-desc', label: 'Price: High to Low' },
 ]
 
 export function FilterBar({ filters, onChange, totalCount, freeCount, premiumCount, purchasedCount }: FilterBarProps) {

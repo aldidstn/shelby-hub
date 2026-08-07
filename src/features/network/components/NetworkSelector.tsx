@@ -6,6 +6,7 @@ import { useShelbyNetwork } from '@/features/network/NetworkProvider'
 import { SHELBY_NETWORK_OPTIONS } from '@/features/network/network'
 import { ensureWalletNetwork } from '@/features/network/wallet-network'
 import type { ShelbyNetwork } from '@/features/reports/types/report'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import styles from './NetworkSelector.module.css'
 
 export function NetworkSelector() {
@@ -70,9 +71,7 @@ export function NetworkSelector() {
           <option key={option.value} value={option.value}>{option.shortLabel}</option>
         ))}
       </select>
-      <svg className={styles.chevron} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-        <path d="m6 8 4 4 4-4" />
-      </svg>
+      <MaterialIcon name="expand_more" size={18} className={styles.chevron} />
       {switchError && <span id="network-switch-error" className={styles.srOnly} role="alert">{switchError}</span>}
     </label>
   )

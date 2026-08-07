@@ -19,8 +19,16 @@ h4,
 p,
 figure,
 dl,
-dd {
+dd,
+ol,
+ul {
   margin: 0;
+}
+
+ol,
+ul {
+  padding: 0;
+  list-style: none;
 }
 
 body {

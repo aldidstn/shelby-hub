@@ -4,6 +4,7 @@ import { FormEvent, ReactNode, Suspense, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Sidebar } from './Sidebar'
 import { NetworkSelector } from '@/features/network/components/NetworkSelector'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { ShelbyNetworkProvider } from '@/features/network/NetworkProvider'
 import styles from './WorkspaceShell.module.css'
 
@@ -24,9 +25,7 @@ function WorkspaceToolbar({ onOpenNavigation }: { onOpenNavigation: () => void }
   return (
     <header className={styles.toolbar}>
       <button className={styles.menuButton} onClick={onOpenNavigation} aria-label="Open navigation">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
+        <MaterialIcon name="menu" size={22} />
       </button>
 
       <SearchForm key={currentQuery} initialQuery={currentQuery} onSearch={(query) => router.push(query ? `/reports?q=${encodeURIComponent(query)}` : '/reports')} />
@@ -53,10 +52,7 @@ function SearchForm({ initialQuery, onSearch }: { initialQuery: string; onSearch
 
   return (
     <form className={styles.search} onSubmit={submitSearch} role="search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-          <circle cx="11" cy="11" r="6.5" />
-          <path d="m16 16 4 4" />
-        </svg>
+        <MaterialIcon name="search" size={19} />
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -65,7 +61,7 @@ function SearchForm({ initialQuery, onSearch }: { initialQuery: string; onSearch
         />
         {query && (
           <button type="button" className={styles.clearSearch} onClick={() => setQuery('')} aria-label="Clear search">
-            ×
+            <MaterialIcon name="close" size={18} />
           </button>
         )}
         <span className={styles.searchHint}>Enter</span>

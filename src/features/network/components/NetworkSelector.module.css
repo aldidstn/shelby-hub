@@ -66,8 +66,6 @@
 .chevron {
   position: absolute;
   right: .75rem;
-  width: .8rem;
-  height: .8rem;
   pointer-events: none;
   color: var(--text-muted);
 }

@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import styles from './WalletConnectDialog.module.css'
 
 interface WalletConnectDialogProps {
@@ -56,7 +57,7 @@ export function WalletConnectDialog({ open, onClose, onConnected }: WalletConnec
             <h2 id="wallet-dialog-title">Choose your wallet</h2>
             <p>Connect once. Purchase and publish directly on-chain.</p>
           </div>
-          <button onClick={onClose} aria-label="Close wallet selection">×</button>
+          <button onClick={onClose} aria-label="Close wallet selection"><MaterialIcon name="close" size={22} /></button>
         </header>
 
         <div className={styles.walletList}>

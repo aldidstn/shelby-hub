@@ -7,6 +7,7 @@ import { formatAmount, formatUsd, timeAgo } from '../lib/format'
 import type { FilterKind, Trade } from '../types/trade'
 import layout from '@/styles/layout.module.css'
 import styles from './IntelPage.module.css'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 
 const ETHERSCAN_BASE = 'https://etherscan.io'
 
@@ -17,16 +18,12 @@ const ETHERSCAN_BASE = 'https://etherscan.io'
 function KindBadge({ kind }: { kind: 'buy' | 'sell' }) {
   return kind === 'buy' ? (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-positive/10 text-positive hover:bg-positive/15 transition-colors cursor-default select-none">
-      <svg className="w-2.5 h-2.5 transition-transform duration-150 group-hover:-translate-y-px" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5l7.5-7.5 7.5 7.5M12 3v18" />
-      </svg>
+      <MaterialIcon name="arrow_upward" size={12} />
       BUY
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-negative/10 text-negative hover:bg-negative/15 transition-colors cursor-default select-none">
-      <svg className="w-2.5 h-2.5 transition-transform duration-150 group-hover:translate-y-px" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5l-7.5 7.5-7.5-7.5M12 21V3" />
-      </svg>
+      <MaterialIcon name="arrow_downward" size={12} />
       SELL
     </span>
   )
@@ -89,7 +86,7 @@ function MobileTradeCard({ trade }: { trade: Trade }) {
         rel="noopener noreferrer"
         className={styles.mobileTransaction}
       >
-        View transaction <span aria-hidden="true">↗</span>
+        View transaction <MaterialIcon name="open_in_new" size={16} />
       </a>
     </article>
   )
@@ -174,12 +171,7 @@ export default function IntelPage() {
           disabled={loading || refreshing}
           className="flex h-11 items-center gap-2 px-4 rounded-lg text-sm font-medium border border-divider bg-surface text-text-secondary hover:text-text-primary hover:bg-background active:scale-95 transition-all duration-150 disabled:opacity-50"
         >
-          <svg
-            className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          <MaterialIcon name="refresh" size={17} className={refreshing ? 'animate-spin' : ''} />
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>
@@ -229,10 +221,7 @@ export default function IntelPage() {
       {/* ── Loading ── */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <svg className="w-6 h-6 text-pink animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+          <MaterialIcon name="progress_activity" size={24} className="text-pink animate-spin" />
           <span className="text-sm text-text-muted">Loading trades…</span>
         </div>
       )}
@@ -240,9 +229,7 @@ export default function IntelPage() {
       {/* ── Error ── */}
       {!loading && error && (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <svg className="w-8 h-8 text-negative/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 3h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-          </svg>
+          <MaterialIcon name="warning" size={32} className="text-negative/50" />
           <p className="text-sm text-text-secondary">{error}</p>
           <button onClick={() => fetchTrades()} className="inline-flex h-11 items-center px-3 text-sm font-medium text-pink hover:underline">Try again</button>
         </div>
@@ -343,9 +330,7 @@ export default function IntelPage() {
                   className="flex items-center justify-center w-12 h-12 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-background active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Previous page"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
+                  <MaterialIcon name="chevron_left" size={18} />
                 </button>
 
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
@@ -370,9 +355,7 @@ export default function IntelPage() {
                   className="flex items-center justify-center w-12 h-12 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-background active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Next page"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
+                  <MaterialIcon name="chevron_right" size={18} />
                 </button>
               </div>
             </div>
@@ -383,9 +366,7 @@ export default function IntelPage() {
       {/* ── Empty (no trades from API) ── */}
       {!loading && !error && trades.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <svg className="w-10 h-10 text-divider" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-          </svg>
+          <MaterialIcon name="monitoring" size={40} className="text-divider" />
           <p className="text-sm text-text-muted">No recent trades found for this pool</p>
           <button onClick={() => fetchTrades()} className="inline-flex h-11 items-center px-3 text-sm font-medium text-pink hover:underline">Refresh</button>
         </div>
@@ -402,9 +383,7 @@ export default function IntelPage() {
       {/* ── Pool info footer ── */}
       {!loading && !error && trades.length > 0 && (
         <div className="flex items-center gap-2 text-xs text-text-muted pt-2">
-          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-          </svg>
+          <MaterialIcon name="info" size={16} />
           <span>
             Data from CoinGecko · Pool{' '}
             <a

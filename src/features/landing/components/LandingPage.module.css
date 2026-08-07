@@ -55,7 +55,18 @@
 .headerCta { min-height: 2.75rem; padding: 0 1rem; border-radius: .8rem; background: var(--action-primary); color: #fff7fb; font-size: var(--type-ui); font-weight: 700; box-shadow: 0 9px 20px color-mix(in srgb, var(--action-primary) 24%, transparent); transition: transform .2s, box-shadow .2s; }
 .headerCta:hover { transform: translateY(-1px); box-shadow: 0 13px 26px color-mix(in srgb, var(--brand-pink) 32%, transparent); }
 .menuButton { display: none; width: 2.75rem; height: 2.75rem; place-items: center; gap: .3rem; border: 1px solid var(--divider); border-radius: .8rem; background: var(--surface); }
-.menuButton span { width: 1rem; height: 1px; background: var(--text-primary); }
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .hero {
   position: relative;
@@ -93,7 +104,7 @@
 
 .marquee {
   position: relative;
-  padding: .85rem 0;
+  padding: .85rem 1rem;
   border-block: 1px solid var(--divider);
   background: color-mix(in srgb, var(--glass-bg) 48%, transparent);
   overflow: hidden;
@@ -168,7 +179,7 @@
 .signalFigure figcaption { position: absolute; right: 50%; bottom: clamp(1rem, 3vw, 2.4rem); z-index: 3; width: fit-content; max-width: calc(100% - 2rem); display: inline-flex; align-items: center; justify-content: center; gap: clamp(.85rem, 2.2vw, 2rem); padding: .85rem clamp(1rem, 2.8vw, 2rem); border: 1px solid rgb(255 255 255 / .22); border-radius: 999px; color: #fff8fc; background: rgb(10 20 19 / .64); box-shadow: 0 18px 48px rgb(0 0 0 / .18), inset 0 1px 0 rgb(255 255 255 / .18); backdrop-filter: blur(18px) saturate(145%); transform: translateX(50%); }
 .signalFigure figcaption span { display: flex; align-items: center; gap: .55rem; font-family: var(--font-display); font-size: var(--type-ui); white-space: nowrap; }
 .signalFigure figcaption b { color: #ff9dcc; font: 650 var(--type-caption) var(--font-geist-mono); }
-.signalFigure figcaption i { color: #ff9dcc; font-style: normal; }
+.flowArrow { color: #ff9dcc; }
 
 .whySection,.feedSection,.architectureSection { width: min(100%, 94rem); margin-inline: auto; scroll-margin-top: 6rem; padding: clamp(6rem, 11vw, 10rem) clamp(1rem, 6vw, 6.5rem); }
 .whySection { display: grid; grid-template-columns: minmax(18rem, .72fr) minmax(0, 1.28fr); gap: clamp(3rem, 9vw, 8rem); padding-block: clamp(4.5rem, 8vw, 7rem); }
@@ -190,8 +201,8 @@
 .listings article { display: grid; grid-template-columns: 8rem minmax(0, 1fr) auto; align-items: center; gap: clamp(1.5rem, 4vw, 4rem); padding: clamp(1.4rem, 3vw, 2.3rem); border: 1px solid var(--divider); transition: border-color .22s, transform .22s cubic-bezier(.25, 1, .5, 1), background .22s, box-shadow .22s; }
 .listings article:hover { border-color: color-mix(in srgb, var(--brand-pink) 42%, transparent); transform: translateX(.3rem); }
 .listings article:focus-within { border-color: color-mix(in srgb, var(--brand-pink) 52%, transparent); box-shadow: 0 14px 34px color-mix(in srgb, var(--brand-pink) 10%, transparent); }
-.listingPrimary { border-radius: 1.25rem 1.25rem .3rem 1.25rem; background: color-mix(in srgb, var(--surface) 80%, transparent); box-shadow: inset 0 1px 0 var(--glass-highlight); }
-.listingSecondary { border-radius: .3rem 1.25rem 1.25rem 1.25rem; background: color-mix(in srgb, var(--background) 72%, transparent); }
+.listingPrimary { border-radius: 1.25rem; background: color-mix(in srgb, var(--surface) 80%, transparent); box-shadow: inset 0 1px 0 var(--glass-highlight); }
+.listingSecondary { border-radius: 1.25rem; background: color-mix(in srgb, var(--background) 72%, transparent); }
 .listingIndex { color: var(--text-muted); font: 550 var(--type-caption) var(--font-geist-mono); letter-spacing: .06em; }
 .listingMeta { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; }
 .listingMeta span { padding: .28rem .5rem; border-radius: .35rem; background: var(--background); color: var(--text-muted); font: 550 var(--type-caption) var(--font-geist-mono); }
@@ -209,8 +220,8 @@
 .architectureSection { display: grid; grid-template-columns: 1fr; gap: clamp(2rem, 4vw, 3rem); padding-block: clamp(4.5rem, 8vw, 7rem); }
 .architectureIntro { max-width: 42rem; }
 .architectureIntro > p:last-child { max-width: 28rem; margin-top: 1.4rem; color: var(--text-secondary); font-size: var(--type-body); line-height: 1.75; }
-.workflows { display: grid; gap: 1rem; min-width: 0; }
-.flowLane { position: relative; padding: clamp(1.2rem, 2.4vw, 1.7rem); border: 1px solid var(--glass-border); border-radius: 1.15rem; background: color-mix(in srgb, var(--glass-bg) 72%, transparent); box-shadow: inset 0 1px 0 var(--glass-highlight); overflow: hidden; }
+.workflows { width: 100%; display: grid; gap: 1rem; min-width: 0; }
+.flowLane { position: relative; width: 100%; padding: clamp(1.2rem, 2.4vw, 1.7rem); border: 1px solid var(--glass-border); border-radius: 1.15rem; background: color-mix(in srgb, var(--glass-bg) 72%, transparent); box-shadow: inset 0 1px 0 var(--glass-highlight); overflow: hidden; }
 .flowLane { transition: transform .24s cubic-bezier(.25, 1, .5, 1), border-color .24s, box-shadow .24s; }
 .flowLane:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--brand-pink) 30%, var(--glass-border)); box-shadow: 0 18px 42px color-mix(in srgb, var(--brand-pink) 9%, transparent), inset 0 1px 0 var(--glass-highlight); }
 .flowLane:nth-child(2) { margin-left: 0; }
@@ -218,9 +229,9 @@
 .workflows header { position: relative; display: flex; justify-content: space-between; gap: 1rem; color: var(--text-muted); font: 550 var(--type-caption) var(--font-geist-mono); letter-spacing: .06em; }
 .workflows header span { color: var(--brand-pink); }
 .workflows h3 { position: relative; margin-top: .8rem; font-family: var(--font-display); font-size: clamp(1.3rem, 1.7vw, 1.55rem); line-height: 1.25; }
-.workflows ol { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.2rem; margin-top: 1.15rem; }
-.workflows li { position: relative; min-width: 0; min-height: 6.2rem; display: flex; flex-direction: column; justify-content: space-between; gap: .65rem; padding: .8rem; border: 1px solid var(--divider); border-radius: .75rem; background: color-mix(in srgb, var(--surface) 72%, transparent); box-shadow: inset 0 1px 0 var(--glass-highlight); }
-.workflows li:not(:last-child)::after { content: '→'; position: absolute; z-index: 2; top: 50%; right: -.95rem; bottom: auto; left: auto; width: .7rem; color: var(--brand-pink); font: 700 .8rem var(--font-geist-mono); transform: translateY(-50%); }
+.workflows ol { position: relative; width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.2rem; margin: 1.15rem 0 0; padding: 0; list-style: none; }
+.workflows li { position: relative; width: 100%; min-width: 0; min-height: 6.2rem; display: flex; flex-direction: column; justify-content: space-between; gap: .65rem; padding: .8rem; border: 1px solid var(--divider); border-radius: .75rem; background: color-mix(in srgb, var(--surface) 72%, transparent); box-shadow: inset 0 1px 0 var(--glass-highlight); }
+.workflows li:not(:last-child)::after { content: '\e5c8'; position: absolute; z-index: 2; top: 50%; right: -.95rem; bottom: auto; left: auto; width: .7rem; color: var(--brand-pink); font: 400 .9rem 'Material Symbols Rounded'; transform: translateY(-50%); }
 .workflows li > span { color: var(--brand-pink); font: 650 var(--type-caption) var(--font-geist-mono); }
 .workflows li strong { display: block; color: var(--text-primary); font-family: var(--font-display); font-size: var(--type-ui); line-height: 1.3; }
 .workflows li p { margin-top: .2rem; color: var(--text-secondary); font-size: var(--type-meta); line-height: 1.55; }
@@ -305,8 +316,9 @@
   .signalImageCard::after { background: linear-gradient(180deg, rgb(4 12 12 / .84) 0%, rgb(4 12 12 / .52) 44%, rgb(4 12 12 / .16) 70%, rgb(4 12 12 / .5) 100%); }
   .signalOverlay { top: 1.2rem; left: 1.2rem; width: calc(100% - 2.4rem); }
   .signalOverlay h2 { font-size: clamp(2.35rem, 11vw, 3.45rem); }
-  .signalFigure figcaption { flex-wrap: wrap; border-radius: 1rem; }
-  .signalFigure figcaption i { display: none; }
+  .signalFigure figcaption { width: calc(100% - 2rem); max-width: none; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: .35rem; padding-inline: .75rem; border-radius: 1rem; }
+  .signalFigure figcaption span { justify-content: center; gap: .35rem; font-size: .875rem; }
+  .flowArrow { display: inline-flex; }
   .whySection,.feedSection,.architectureSection { padding: 5.5rem .75rem; }
   .whySection,.architectureSection { padding-block: 4rem; }
   .sectionIntro h2,.sectionHeader h2,.architectureIntro h2,.finalCta h2 { font-size: clamp(2rem, 11vw, 3.25rem); }
@@ -322,7 +334,7 @@
   .workflows header { flex-direction: column; }
   .workflows ol { grid-template-columns: 1fr; gap: .85rem; }
   .workflows li { min-height: 0; display: grid; grid-template-columns: 2.25rem 1fr; gap: .5rem; padding: .85rem; }
-  .workflows li:not(:last-child)::after { content: '↓'; top: auto; right: auto; bottom: -.82rem; left: 50%; width: auto; transform: translateX(-50%); }
+  .workflows li:not(:last-child)::after { content: '\e5db'; top: auto; right: auto; bottom: -.82rem; left: 50%; width: auto; transform: translateX(-50%); }
   .workflows li strong { font-size: .92rem; }
   .workflows li p { margin-top: .1rem; }
   .finalCta { min-height: 36rem; margin: 3.5rem .5rem; padding: 2.4rem 1.4rem 5rem; justify-content: flex-start; border-radius: 1.2rem; }

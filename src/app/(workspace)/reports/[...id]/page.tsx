@@ -6,6 +6,7 @@ import ReportsPage from '@/features/reports/components/ReportsPage'
 import { SharedReportPreview } from '@/features/reports/components/SharedReportPreview'
 import { getOptionalSession } from '@/server/auth/session'
 import { findReport } from '@/server/reports/repository'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 
 interface Props {
   params: Promise<{ id: string[] }>
@@ -43,9 +44,7 @@ export default async function ReportReaderPage({ params }: Props) {
           href="/reports"
           className="flex items-center gap-2 px-3 py-2.5 mb-3 rounded-lg bg-pink text-white text-xs font-semibold hover:opacity-90 transition-opacity"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
+          <MaterialIcon name="arrow_back" size={17} />
           Back to Library
         </Link>
 
@@ -75,9 +74,7 @@ export default async function ReportReaderPage({ params }: Props) {
           href="/reports"
           className="lg:hidden inline-flex items-center gap-2 px-3 py-2 mb-6 rounded-lg bg-pink text-white text-xs font-semibold hover:opacity-90 transition-opacity"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
+          <MaterialIcon name="arrow_back" size={17} />
           Back to Library
         </Link>
 
@@ -143,9 +140,7 @@ export default async function ReportReaderPage({ params }: Props) {
             href="/reports"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-pink text-white text-xs font-semibold hover:opacity-90 transition-opacity"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
+            <MaterialIcon name="arrow_back" size={17} />
             Back to Library
           </Link>
         </footer>

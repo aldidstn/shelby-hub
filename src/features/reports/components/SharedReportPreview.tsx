@@ -10,6 +10,7 @@ import { useWalletSession } from '@/features/auth/useWalletSession'
 import { downloadErrorMessage, downloadReport } from '@/features/reports/services/download'
 import type { Report } from '@/features/reports/types/report'
 import styles from './SharedReportPreview.module.css'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -118,9 +119,7 @@ export function SharedReportPreview({ report }: { report: Report }) {
               )}
             </div>
             <Link href="/reports" className={styles.closeButton} aria-label="Close preview">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path strokeLinecap="round" d="m6 6 12 12M18 6 6 18" />
-              </svg>
+              <MaterialIcon name="close" size={22} />
             </Link>
           </header>
 
@@ -176,9 +175,7 @@ export function SharedReportPreview({ report }: { report: Report }) {
               )}
               {canDownload ? (
                 <button type="button" className={styles.primaryButton} onClick={handleDownload} disabled={downloading}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14" />
-                  </svg>
+                  <MaterialIcon name={downloading ? 'progress_activity' : 'download'} size={19} className={downloading ? 'animate-spin' : ''} />
                   {downloading ? 'Downloading…' : 'Download file'}
                 </button>
               ) : (
@@ -187,9 +184,7 @@ export function SharedReportPreview({ report }: { report: Report }) {
                   className={styles.primaryButton}
                   onClick={() => connected ? setPurchaseOpen(true) : setWalletOpen(true)}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 11V8a5 5 0 0 1 10 0v3m-9 0h8a2 2 0 0 1 2 2v7H6v-7a2 2 0 0 1 2-2Z" />
-                  </svg>
+                  <MaterialIcon name="lock" size={19} />
                   {connected ? `Buy ${report.price ?? 0} APT` : 'Connect wallet first'}
                 </button>
               )}

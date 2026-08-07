@@ -7,7 +7,7 @@ test('landing page presents the research hub and wallet entry point', async ({ p
   await expect(page.getByRole('heading', { name: 'The live intelligence feed' })).toBeVisible()
   await expect(page.getByText('Smart Money Movement Q2').first()).toBeVisible()
 
-  await page.getByRole('button', { name: 'Connect & explore', exact: true }).click()
+  await page.getByRole('banner').getByRole('button', { name: 'Connect & explore', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Choose your wallet' })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog', { name: 'Choose your wallet' })).toBeHidden()
@@ -32,6 +32,42 @@ test('landing navigation adapts on mobile and theme choice persists', async ({ p
   const theme = await page.locator('html').getAttribute('data-theme')
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme ?? 'light')
+})
+
+test('landing content keeps the audited mobile alignment', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+
+  const marquee = page.getByRole('region', { name: 'Platform characteristics' })
+  const marqueeLayout = await marquee.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return { left: style.paddingLeft, right: style.paddingRight }
+  })
+  expect(marqueeLayout).toEqual({ left: '16px', right: '16px' })
+  const accessibleMarqueeCopy = page.getByText('Research reports, Smart money data, Encrypted delivery, Direct settlement, Permanent access')
+  const hiddenCopyLayout = await accessibleMarqueeCopy.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return { width: style.width, height: style.height, clip: style.clip, overflow: style.overflow }
+  })
+  expect(hiddenCopyLayout).toEqual({ width: '1px', height: '1px', clip: 'rect(0px, 0px, 0px, 0px)', overflow: 'hidden' })
+
+  const sequenceItems = await page.locator('figure figcaption > span:not([aria-hidden])').evaluateAll((items) => items.map((item) => item.getBoundingClientRect().toJSON()))
+  expect(sequenceItems.every(Boolean)).toBe(true)
+  expect(sequenceItems).toHaveLength(3)
+  expect(Math.max(...sequenceItems.map((item) => item.y)) - Math.min(...sequenceItems.map((item) => item.y))).toBeLessThan(3)
+
+  for (const title of ['Smart Money Movement Q2', 'AI Sector On-Chain Onboarding Report']) {
+    const card = page.getByRole('article').filter({ hasText: title })
+    const radii = await card.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomRightRadius, style.borderBottomLeftRadius]
+    })
+    expect(new Set(radii).size).toBe(1)
+  }
+
+  const workflow = page.getByRole('article').filter({ hasText: 'Encrypted storage pipeline' })
+  const workflowBox = await workflow.boundingBox()
+  expect(workflowBox?.width).toBeGreaterThan(350)
 })
 
 test('intel trades adapt to a mobile card layout without horizontal overflow', async ({ page }) => {

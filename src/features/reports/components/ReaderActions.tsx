@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { downloadShelbyBlob, type DownloadStatus } from '../services/shelby-download'
 import type { Report } from '../types/report'
 import { downloadErrorMessage, downloadReport, type AceWalletSigner } from '@/features/reports/services/download'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 
 interface ReaderActionsProps {
   initialLikes: number
@@ -85,9 +86,7 @@ export function ReaderActions({
               : 'bg-background text-text-secondary border-divider hover:border-pink hover:text-pink'
           }`}
         >
-          <svg className="w-4 h-4" fill={liked ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
+          <MaterialIcon name="favorite" size={18} />
           {likeCount.toLocaleString()}
         </button>
 
@@ -100,9 +99,7 @@ export function ReaderActions({
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-brown text-white hover:opacity-90 active:opacity-80 transition-opacity"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
+            <MaterialIcon name="download" size={18} />
             Download
           </a>
         ) : (
@@ -119,31 +116,22 @@ export function ReaderActions({
           >
             {downloadStatus === 'loading' ? (
               <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
-                </svg>
+                <MaterialIcon name="progress_activity" size={18} className="animate-spin" />
                 Downloading…
               </>
             ) : downloadStatus === 'success' ? (
               <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+                <MaterialIcon name="check" size={18} />
                 Downloaded
               </>
             ) : downloadStatus === 'error' ? (
               <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <MaterialIcon name="close" size={18} />
                 Failed
               </>
             ) : (
               <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+                <MaterialIcon name="download" size={18} />
                 Download
               </>
             )}

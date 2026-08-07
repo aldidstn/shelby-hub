@@ -8,6 +8,7 @@ import { confirmPurchase } from '../services/api'
 import { purchaseReportPayload, verifyPurchaseTransaction } from '../services/registry'
 import { ensureWalletNetwork } from '@/features/network/wallet-network'
 import layout from '@/styles/layout.module.css'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 
 type PurchaseState = 'idle' | 'confirm' | 'pending' | 'success' | 'error'
 
@@ -123,9 +124,7 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
             aria-label="Close"
             className="flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-surface transition-colors shrink-0"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <MaterialIcon name="close" size={18} />
           </button>
         </div>
 
@@ -179,9 +178,7 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
         {state === 'success' && (
           <div className="flex flex-col items-center gap-3 py-4">
             <div className="w-10 h-10 rounded-full bg-positive/10 flex items-center justify-center animate-bounce-in">
-              <svg className="w-5 h-5 text-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+              <MaterialIcon name="check_circle" size={22} className="text-positive" />
             </div>
             <p className="text-sm font-semibold text-text-primary animate-fade-up">Purchase Successful</p>
             <p className="text-xs text-text-muted text-center">You now have full access to this report</p>
@@ -197,9 +194,7 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
         {state === 'error' && (
           <div className="flex flex-col items-center gap-3 py-4">
             <div className="w-10 h-10 rounded-full bg-negative/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-negative" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <MaterialIcon name="error" size={22} className="text-negative" />
             </div>
             <p className="text-sm font-semibold text-text-primary">Transaction Failed</p>
             <p className="text-xs text-text-muted text-center">{errorMsg}</p>

@@ -2,7 +2,7 @@
 .toggle:hover { color:var(--brand-pink); background:var(--glass-strong); transform:translateY(-1px); }
 .toggle:active { transform:translateY(0) scale(.96); }
 .toggle:focus-visible { outline:2px solid var(--brand-pink); outline-offset:2px; }
-.toggle svg { grid-area:1/1; width:1.1rem; height:1.1rem; transition:opacity .2s,transform .3s; }
+.toggle > span { grid-area:1/1; transition:opacity .2s,transform .3s; }
 .moon { opacity:1; transform:rotate(0); }
 .sun { opacity:0; transform:rotate(-45deg); }
 :global(html[data-theme='light']) .moon { opacity:0; transform:rotate(45deg); }
