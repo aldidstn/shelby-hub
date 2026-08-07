@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { LandingPage } from '@/features/landing/components/LandingPage'
 
 export const metadata: Metadata = {
-  title: 'Shelby Research — Institutional-grade crypto intelligence',
+  title: 'Independent crypto intelligence',
   description: 'Discover independent research, smart-money datasets, and on-chain intelligence delivered through Shelby Protocol and Aptos.',
 }
 

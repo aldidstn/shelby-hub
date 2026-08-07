@@ -46,13 +46,13 @@
 .siteHeader > .brand { min-height: 2.75rem; }
 
 .nav { display: flex; align-items: center; gap: clamp(1rem, 2.4vw, 2rem); }
-.nav a { position: relative; color: var(--text-secondary); font-size: var(--type-ui); font-weight: 550; }
+.nav a { position: relative; display: flex; align-items: center; min-height: 2.75rem; color: var(--text-secondary); font-size: var(--type-ui); font-weight: 550; }
 .nav a::after { content: ''; position: absolute; right: 0; bottom: -.5rem; left: 0; height: 1px; background: var(--brand-pink); transform: scaleX(0); transform-origin: right; transition: transform .25s cubic-bezier(.16, 1, .3, 1); }
 .nav a:hover { color: var(--text-primary); }
 .nav a:hover::after { transform: scaleX(1); transform-origin: left; }
 .mobileNavCta { display: none; }
 .headerActions { display: flex; align-items: center; justify-content: flex-end; gap: .55rem; }
-.headerCta { min-height: 2.75rem; padding: 0 1rem; border-radius: .8rem; background: var(--brand-pink); color: #fff7fb; font-size: var(--type-ui); font-weight: 700; box-shadow: 0 9px 20px color-mix(in srgb, var(--brand-pink) 24%, transparent); transition: transform .2s, box-shadow .2s; }
+.headerCta { min-height: 2.75rem; padding: 0 1rem; border-radius: .8rem; background: var(--action-primary); color: #fff7fb; font-size: var(--type-ui); font-weight: 700; box-shadow: 0 9px 20px color-mix(in srgb, var(--action-primary) 24%, transparent); transition: transform .2s, box-shadow .2s; }
 .headerCta:hover { transform: translateY(-1px); box-shadow: 0 13px 26px color-mix(in srgb, var(--brand-pink) 32%, transparent); }
 .menuButton { display: none; width: 2.75rem; height: 2.75rem; place-items: center; gap: .3rem; border: 1px solid var(--divider); border-radius: .8rem; background: var(--surface); }
 .menuButton span { width: 1rem; height: 1px; background: var(--text-primary); }
@@ -67,7 +67,7 @@
   background: #514ca2;
 }
 
-.heroImage { z-index: -3; object-fit: cover; object-position: center 52%; animation: heroCameraSettle .8s cubic-bezier(.16, 1, .3, 1) both; }
+.heroImage { z-index: -3; object-fit: cover; object-position: center 52%; }
 .heroShade { position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, rgb(20 12 54 / .08) 15%, rgb(31 10 43 / .18) 48%, rgb(24 5 27 / .72) 100%), linear-gradient(90deg, rgb(26 7 31 / .42), transparent 64%); animation: shadeEnter .65s .1s cubic-bezier(.25, 1, .5, 1) both; }
 .heroStatus { position: absolute; top: 7rem; left: clamp(1.25rem, 3vw, 3rem); display: flex; align-items: center; gap: .5rem; color: rgb(255 255 255 / .84); font: 650 var(--type-caption) var(--font-geist-mono); letter-spacing: .08em; animation: statusEnter .5s .34s cubic-bezier(.22, 1, .36, 1) both; }
 .heroStatus i { width: .42rem; height: .42rem; border-radius: 50%; background: #79f0b0; box-shadow: 0 0 12px #79f0b0; }
@@ -81,7 +81,7 @@
 .heroText { max-width: 34rem; margin-top: 1.15rem; color: rgb(255 235 245 / .84); font-size: var(--type-body); line-height: 1.65; }
 .heroActions { display: flex; align-items: center; gap: .75rem; margin-top: 2rem; }
 .primaryButton,.secondaryButton { min-height: 3.15rem; display: inline-flex; align-items: center; justify-content: center; border-radius: .9rem; font-size: var(--type-ui); font-weight: 700; }
-.primaryButton { gap: 1.4rem; padding: 0 .65rem 0 1.25rem; background: var(--brand-pink); color: #fff7fb; box-shadow: 0 14px 34px color-mix(in srgb, var(--brand-pink) 28%, transparent); transition: transform .22s cubic-bezier(.25, 1, .5, 1), box-shadow .22s cubic-bezier(.25, 1, .5, 1); }
+.primaryButton { gap: 1.4rem; padding: 0 .65rem 0 1.25rem; background: var(--action-primary); color: #fff7fb; box-shadow: 0 14px 34px color-mix(in srgb, var(--action-primary) 28%, transparent); transition: transform .22s cubic-bezier(.25, 1, .5, 1), box-shadow .22s cubic-bezier(.25, 1, .5, 1); }
 .primaryButton b { width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: .58rem; background: rgb(255 255 255 / .18); font-size: .9rem; transition: transform .22s cubic-bezier(.16, 1, .3, 1), background .22s; }
 .primaryButton:hover { transform: translateY(-2px); box-shadow: 0 19px 42px color-mix(in srgb, var(--brand-pink) 36%, transparent); }
 .primaryButton:hover b { transform: translate(2px, -2px); background: rgb(255 255 255 / .25); }
@@ -201,7 +201,7 @@
 .listingContent > p { max-width: 46rem; margin-top: .55rem; color: var(--text-secondary); font-size: var(--type-body-sm); line-height: 1.65; }
 .listingContent > small { display: block; margin-top: .7rem; color: var(--text-muted); font-size: var(--type-caption); letter-spacing: .08em; }
 .listings article > button,.listings article > a { display: inline-flex; align-items: center; gap: .8rem; min-height: 2.8rem; padding: 0 1rem; border-radius: .75rem; font-size: var(--type-ui); font-weight: 700; white-space: nowrap; }
-.listings article > button { background: var(--brand-pink); color: #fff7fb; }
+.listings article > button { background: var(--action-primary); color: #fff7fb; }
 .listings article > a { border: 1px solid var(--divider); color: var(--text-primary); }
 .listings article > button span,.listings article > a span { transition: transform .22s cubic-bezier(.16, 1, .3, 1); }
 .listings article > button:hover span,.listings article > a:hover span { transform: translateX(3px); }
@@ -271,7 +271,7 @@
   .nav a { display: flex; align-items: center; min-height: 2.75rem; padding: .8rem; border-radius: .7rem; font-size: var(--type-ui); }
   .nav a:hover { background: var(--surface); }
   .nav a::after { display: none; }
-  .mobileNavCta { display: flex; align-items: center; justify-content: space-between; min-height: 2.85rem; margin-top: .35rem; padding: 0 .8rem; border-radius: .7rem; background: var(--brand-pink); color: #fff7fb; font-size: var(--type-ui); font-weight: 700; }
+  .mobileNavCta { display: flex; align-items: center; justify-content: space-between; min-height: 2.85rem; margin-top: .35rem; padding: 0 .8rem; border-radius: .7rem; background: var(--action-primary); color: #fff7fb; font-size: var(--type-ui); font-weight: 700; }
   .menuButton { display: grid; }
   .hero { min-height: 48rem; }
   .signalStory > header { gap: 1.2rem; }

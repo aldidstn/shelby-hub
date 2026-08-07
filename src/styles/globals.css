@@ -1,8 +1,7 @@
 @import "./tokens.css";
-@import "./legacy-utilities.css";
+@import "./reset.css";
 
 /*
- * Existing utility selectors are frozen in legacy-utilities.css to preserve
- * visual parity during the CSS Modules migration. New styles belong in a
- * colocated module; do not add utility selectors to the compatibility sheet.
+ * Workspace-only compatibility utilities are imported by its route-group
+ * layout. New styles belong in a colocated CSS Module.
  */

@@ -6,6 +6,9 @@ import { INTEL_PAGE_SIZE as PAGE_SIZE, POOL_ADDRESS, TOKEN_LABELS } from '../con
 import { formatAmount, formatUsd, timeAgo } from '../lib/format'
 import type { FilterKind, Trade } from '../types/trade'
 import layout from '@/styles/layout.module.css'
+import styles from './IntelPage.module.css'
+
+const ETHERSCAN_BASE = 'https://etherscan.io'
 
 /* ─── Types ─────────────────────────────────────────────── */
 
@@ -39,6 +42,56 @@ function StatCard({ label, value, sub, accent, delay = 0 }: { label: string; val
       <span className={`text-2xl font-bold tracking-tight tabular ${accent ?? 'text-text-primary'}`}>{value}</span>
       {sub && <span className="text-xs text-text-muted mt-0.5">{sub}</span>}
     </div>
+  )
+}
+
+function MobileTradeCard({ trade }: { trade: Trade }) {
+  const a = trade.attributes
+  const fromSymbol = TOKEN_LABELS[a.from_token_address] ?? truncateAddress(a.from_token_address)
+  const toSymbol = TOKEN_LABELS[a.to_token_address] ?? truncateAddress(a.to_token_address)
+
+  return (
+    <article className={styles.mobileTrade} role="listitem">
+      <div className={styles.mobileTradeHeader}>
+        <a
+          href={`${ETHERSCAN_BASE}/address/${a.tx_from_address}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.mobileWallet}
+        >
+          {truncateAddress(a.tx_from_address)}
+        </a>
+        <KindBadge kind={a.kind} />
+      </div>
+
+      <dl className={styles.mobileTradeDetails}>
+        <div>
+          <dt>From</dt>
+          <dd>{formatAmount(a.from_token_amount)} <span>{fromSymbol}</span></dd>
+        </div>
+        <div>
+          <dt>To</dt>
+          <dd>{formatAmount(a.to_token_amount)} <span>{toSymbol}</span></dd>
+        </div>
+        <div>
+          <dt>Volume</dt>
+          <dd className={a.kind === 'buy' ? 'text-positive' : 'text-negative'}>{formatUsd(a.volume_in_usd)}</dd>
+        </div>
+        <div>
+          <dt>Time</dt>
+          <dd>{timeAgo(a.block_timestamp)}</dd>
+        </div>
+      </dl>
+
+      <a
+        href={`${ETHERSCAN_BASE}/tx/${a.tx_hash}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={styles.mobileTransaction}
+      >
+        View transaction <span aria-hidden="true">↗</span>
+      </a>
+    </article>
   )
 }
 
@@ -119,7 +172,7 @@ export default function IntelPage() {
         <button
           onClick={() => fetchTrades(true)}
           disabled={loading || refreshing}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border border-divider bg-surface text-text-secondary hover:text-text-primary hover:bg-background active:scale-95 transition-all duration-150 disabled:opacity-50"
+          className="flex h-11 items-center gap-2 px-4 rounded-lg text-sm font-medium border border-divider bg-surface text-text-secondary hover:text-text-primary hover:bg-background active:scale-95 transition-all duration-150 disabled:opacity-50"
         >
           <svg
             className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
@@ -151,7 +204,7 @@ export default function IntelPage() {
                 key={f}
                 onClick={() => handleFilterChange(f)}
                 aria-pressed={filter === f}
-                className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors capitalize ${
+                className={`h-11 px-4 text-sm font-medium border-b-2 -mb-px transition-colors capitalize ${
                   filter === f
                     ? f === 'buy'  ? 'border-positive text-positive'
                     : f === 'sell' ? 'border-negative text-negative'
@@ -191,14 +244,14 @@ export default function IntelPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 3h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
           </svg>
           <p className="text-sm text-text-secondary">{error}</p>
-          <button onClick={() => fetchTrades()} className="text-xs text-pink hover:underline">Try again</button>
+          <button onClick={() => fetchTrades()} className="inline-flex h-11 items-center px-3 text-sm font-medium text-pink hover:underline">Try again</button>
         </div>
       )}
 
       {/* ── Trade table ── */}
       {!loading && !error && visible.length > 0 && (
         <div className="border border-divider rounded-xl overflow-hidden bg-surface shadow-[0_1px_4px_rgba(0,0,0,0.5)]">
-          <div role="table" aria-label="Trade history" className="overflow-x-auto">
+          <div role="table" aria-label="Trade history" className={styles.desktopTable}>
             {/* Table header */}
             <div role="rowgroup">
               <div role="row" className="grid grid-cols-[1fr_80px_120px_120px_100px_80px] gap-3 px-4 py-2.5 bg-surface border-b border-divider text-[11px] text-text-muted font-semibold uppercase tracking-widest min-w-[640px]">
@@ -217,8 +270,6 @@ export default function IntelPage() {
                 const a = trade.attributes
                 const fromSymbol    = TOKEN_LABELS[a.from_token_address] ?? truncateAddress(a.from_token_address)
                 const toSymbol      = TOKEN_LABELS[a.to_token_address]   ?? truncateAddress(a.to_token_address)
-                const etherscanBase = 'https://etherscan.io'
-
                 return (
                   <div
                     key={trade.id}
@@ -229,7 +280,7 @@ export default function IntelPage() {
                     {/* Wallet */}
                     <a
                       role="cell"
-                      href={`${etherscanBase}/address/${a.tx_from_address}`}
+                      href={`${ETHERSCAN_BASE}/address/${a.tx_from_address}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-mono text-xs text-text-secondary hover:text-pink transition-colors truncate"
@@ -261,7 +312,7 @@ export default function IntelPage() {
                     <div role="cell" className="flex flex-col items-end gap-0.5">
                       <span className="text-xs text-text-muted">{timeAgo(a.block_timestamp)}</span>
                       <a
-                        href={`${etherscanBase}/tx/${a.tx_hash}`}
+                        href={`${ETHERSCAN_BASE}/tx/${a.tx_hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-mono text-xs text-text-muted hover:text-pink transition-colors"
@@ -275,9 +326,13 @@ export default function IntelPage() {
             </div>
           </div>
 
+          <div className={styles.mobileTrades} role="list" aria-label="Trade history">
+            {paginated.map((trade) => <MobileTradeCard key={trade.id} trade={trade} />)}
+          </div>
+
           {/* ── Pagination ── */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-divider bg-surface">
+            <div className={`${styles.pagination} flex items-center justify-between px-4 py-3 border-t border-divider bg-surface`}>
               <span className="text-xs text-text-muted">
                 {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, visible.length)} of {visible.length}
               </span>
@@ -285,7 +340,7 @@ export default function IntelPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage === 1}
-                  className="flex items-center justify-center w-10 h-10 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-background active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center w-12 h-12 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-background active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Previous page"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -297,7 +352,9 @@ export default function IntelPage() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`flex items-center justify-center w-10 h-10 rounded-md text-xs font-medium transition-all duration-150 active:scale-95 ${
+                    aria-label={`Page ${p}`}
+                    aria-current={p === safePage ? 'page' : undefined}
+                    className={`${styles.pageNumber} flex items-center justify-center w-12 h-12 rounded-md text-xs font-medium transition-all duration-150 active:scale-95 ${
                       p === safePage
                         ? 'bg-pink/10 text-pink border border-pink/20'
                         : 'border border-divider text-text-secondary hover:text-text-primary hover:bg-background'
@@ -310,7 +367,7 @@ export default function IntelPage() {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={safePage === totalPages}
-                  className="flex items-center justify-center w-10 h-10 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-background active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center w-12 h-12 rounded-md border border-divider text-text-secondary hover:text-text-primary hover:bg-background active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Next page"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -330,7 +387,7 @@ export default function IntelPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
           </svg>
           <p className="text-sm text-text-muted">No recent trades found for this pool</p>
-          <button onClick={() => fetchTrades()} className="text-xs text-pink hover:underline">Refresh</button>
+          <button onClick={() => fetchTrades()} className="inline-flex h-11 items-center px-3 text-sm font-medium text-pink hover:underline">Refresh</button>
         </div>
       )}
 
@@ -338,7 +395,7 @@ export default function IntelPage() {
       {!loading && !error && visible.length === 0 && trades.length > 0 && (
         <div className="flex flex-col items-center justify-center py-16 gap-2">
           <p className="text-sm text-text-muted">No {filter} trades in this batch.</p>
-          <button onClick={() => handleFilterChange('all')} className="text-xs text-pink hover:underline">Show all</button>
+          <button onClick={() => handleFilterChange('all')} className="inline-flex h-11 items-center px-3 text-sm font-medium text-pink hover:underline">Show all</button>
         </div>
       )}
 

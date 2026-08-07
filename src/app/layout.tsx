@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import "@/styles/globals.css";
-import { Providers } from "./providers";
 import { VantaBackground } from "@/components/layout/VantaBackground";
 import styles from "./layout.module.css";
 
@@ -13,6 +12,7 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  preload: false,
 });
 
 const outfit = Outfit({
@@ -22,8 +22,32 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Shelby Scribe",
-  description: "Independent research and market intelligence, secured on Aptos.",
+  metadataBase: new URL("https://shelbyscribe.vercel.app"),
+  title: {
+    default: "Shelby Scribe",
+    template: "%s | Shelby Scribe",
+  },
+  description: "Independent research and market intelligence, stored on Shelby and settled on Aptos.",
+  applicationName: "Shelby Scribe",
+  openGraph: {
+    type: "website",
+    siteName: "Shelby Scribe",
+    title: "Shelby Scribe",
+    description: "Independent research and market intelligence, stored on Shelby and settled on Aptos.",
+    url: "/",
+    images: [{
+      url: "/images/shelby-hero-panorama.jpg",
+      width: 1920,
+      height: 1080,
+      alt: "Shelby Scribe research campus",
+    }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Shelby Scribe",
+    description: "Independent research and market intelligence, stored on Shelby and settled on Aptos.",
+    images: ["/images/shelby-hero-panorama.jpg"],
+  },
   icons: {
     icon: [
       { url: "/images/shelby-icon-on-light.svg", type: "image/svg+xml" },
@@ -50,9 +74,7 @@ export default function RootLayout({
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body className={styles.body}>
         <VantaBackground />
-        <Providers>
-          {children}
-        </Providers>
+        {children}
       </body>
     </html>
   );

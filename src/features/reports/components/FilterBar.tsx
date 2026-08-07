@@ -83,6 +83,7 @@ export function FilterBar({ filters, onChange, totalCount, freeCount, premiumCou
           value={filters.sortBy}
           onChange={(e) => set('sortBy', e.target.value as SortBy)}
           className={styles.select}
+          aria-label="Sort reports"
         >
           {SORT_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>

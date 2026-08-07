@@ -15,10 +15,12 @@
   --brand-pink: #f078b5;
   --brand-pink-hover: #f58bc2;
   --brand-pink-light: rgb(240 120 181 / .12);
+  --action-primary: #b72f78;
+  --action-primary-hover: #a92568;
   --brand-brown: #f0d5df;
   --text-primary: #fff5fa;
   --text-secondary: #caa7b9;
-  --text-muted: #927486;
+  --text-muted: #a38395;
   --semantic-positive: #65d99a;
   --semantic-negative: #ff7d8e;
   --semantic-warning: #f6c65b;
@@ -50,10 +52,12 @@
   --brand-pink: #d94f97;
   --brand-pink-hover: #c93d85;
   --brand-pink-light: rgb(217 79 151 / .10);
+  --action-primary: #b72f78;
+  --action-primary-hover: #a92568;
   --brand-brown: #5b2b45;
   --text-primary: #3b1d2d;
   --text-secondary: #745267;
-  --text-muted: #9b7b8e;
+  --text-muted: #876879;
   --semantic-positive: #208b5b;
   --semantic-negative: #c84258;
   --semantic-warning: #a66f00;

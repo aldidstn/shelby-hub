@@ -36,8 +36,8 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
     {open && <button className={styles.overlay} onClick={onClose} aria-label="Close navigation" />}
     <aside className={`${styles.sidebar} ${open ? styles.open : ''}`}>
       <div className={styles.brandRow}>
-        <Link href="/reports" className={styles.brand} onClick={onClose} aria-label="Shelby Hub reports">
-          <Image src="/images/shelby-logo-pink.svg" alt="Shelby Hub" width={172} height={40} className={styles.brandLogo} priority />
+        <Link href="/reports" className={styles.brand} onClick={onClose} aria-label="Shelby Scribe reports">
+          <Image src="/images/shelby-logo-pink.svg" alt="Shelby Scribe" width={172} height={40} className={styles.brandLogo} priority />
         </Link>
         <button className={styles.mobileClose} onClick={onClose} aria-label="Close menu">×</button>
       </div>

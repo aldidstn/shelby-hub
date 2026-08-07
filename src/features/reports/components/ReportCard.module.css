@@ -26,7 +26,8 @@
 .fileNeutral { color:var(--text-secondary); background:var(--background); }
 .headingRow { align-items:flex-start; gap:.75rem; }
 .title { color:var(--text-primary); font-size:1rem; font-weight:600; line-height:1.35; letter-spacing:-.015em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.titleButton { color:inherit; text-align:left; font:inherit; cursor:pointer; }
+.title a,.titleButton { min-height:2.75rem; display:flex; align-items:center; color:inherit; }
+.titleButton { text-align:left; font:inherit; cursor:pointer; }
 .titleButton:hover { color:var(--brand-pink); }
 .priceBadge { flex-shrink:0; padding:.125rem .5rem; border-radius:999px; font-size:.75rem; font-weight:600; }
 .description { color:var(--text-secondary); font-size:.875rem; line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
@@ -35,9 +36,9 @@
 .authorName { color:var(--text-primary); font-size:.75rem; font-weight:600; }
 .date { color:var(--text-muted); font-size:.75rem; font-variant-numeric:tabular-nums; }
 .actions { justify-content:flex-end; gap:.25rem; }
-.iconButton { display:grid; place-items:center; width:2rem; height:2rem; border-radius:var(--radius-sm); color:var(--text-muted); transition:color .15s, background .15s; }
+.iconButton { display:grid; place-items:center; width:2.75rem; height:2.75rem; border-radius:var(--radius-sm); color:var(--text-muted); transition:color .15s, background .15s; }
 .iconButton:hover { color:var(--text-primary); background:var(--background); }
-.primaryButton { display:inline-flex; align-items:center; gap:.375rem; padding:.5rem .75rem; border-radius:var(--radius-sm); background:var(--brand-pink); color:#fff7fb; font-size:.75rem; font-weight:600; transition:opacity .15s, transform .15s; }
+.primaryButton { min-height:2.75rem; display:inline-flex; align-items:center; gap:.375rem; padding:.5rem .75rem; border-radius:var(--radius-sm); background:var(--action-primary); color:#fff7fb; font-size:.75rem; font-weight:600; transition:opacity .15s, transform .15s; }
 .primaryButton:hover { opacity:.9; }
 .primaryButton:active { transform:scale(.95); }
 .primaryButton:disabled { opacity:.4; cursor:not-allowed; }
@@ -47,4 +48,5 @@
   line-height: 1.5;
 }
 .icon { width:.875rem; height:.875rem; }
+.title a:focus-visible,.titleButton:focus-visible,.iconButton:focus-visible,.primaryButton:focus-visible { outline:2px solid var(--brand-pink); outline-offset:2px; }
 @media (prefers-reduced-motion:reduce) { .card,.primaryButton { transition:none; } .card:hover { transform:none; } }

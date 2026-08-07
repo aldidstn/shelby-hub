@@ -34,7 +34,7 @@ function WorkspaceToolbar({ onOpenNavigation }: { onOpenNavigation: () => void }
       <div className={styles.toolbarMeta}>
         <NetworkSelector />
         <div className={styles.context}>
-          <span>{pageRoot ? PAGE_LABELS[pageRoot] : 'Shelby Research'}</span>
+          <span>{pageRoot ? PAGE_LABELS[pageRoot] : 'Shelby Scribe'}</span>
           <i />
           <strong>Live</strong>
         </div>

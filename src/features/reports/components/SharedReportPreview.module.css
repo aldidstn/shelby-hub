@@ -246,12 +246,12 @@
   padding: .65rem 1rem;
   border: 1px solid color-mix(in srgb, var(--brand-pink) 60%, transparent);
   color: #fff7fb;
-  background: var(--brand-pink);
+  background: var(--action-primary);
   box-shadow: 0 10px 24px color-mix(in srgb, var(--brand-pink) 24%, transparent);
 }
 
 .primaryButton:hover {
-  background: var(--brand-pink-hover);
+  background: var(--action-primary-hover);
   transform: translateY(-1px);
 }
 

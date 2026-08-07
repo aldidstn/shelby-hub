@@ -11,7 +11,7 @@ export const SIWA_CHAIN_IDS = {
   testnet: 'aptos:testnet',
   shelbynet: 'aptos:shelbynet',
 } as const satisfies Record<ShelbyNetwork, string>
-export const SIWA_STATEMENT = 'Sign in to Shelby Research'
+export const SIWA_STATEMENT = 'Sign in to Shelby Scribe'
 
 export function siwaChainIdForNetwork(network: ShelbyNetwork) {
   return SIWA_CHAIN_IDS[network]

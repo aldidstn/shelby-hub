@@ -156,8 +156,9 @@ export default function ProfilePage() {
         <svg className="w-12 h-12 text-divider" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
         </svg>
-        <p className="text-sm text-text-secondary">Connect your wallet to view your profile</p>
-        <Link href="/reports" className="text-xs text-pink hover:underline">Go to Reports</Link>
+        <h1 className="text-lg font-semibold text-brown">Your profile</h1>
+        <p className="text-sm text-text-secondary">Connect your wallet to view uploads and purchases.</p>
+        <Link href="/reports" className="inline-flex h-11 items-center rounded-lg px-4 text-sm font-semibold text-pink hover:bg-pink-light">Browse reports</Link>
       </div>
     )
   }

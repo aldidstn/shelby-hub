@@ -2,12 +2,16 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
-import { WalletConnectDialog } from '@/components/wallet/WalletConnectDialog'
 import styles from './LandingPage.module.css'
+
+const LandingWalletDialog = dynamic(
+  () => import('./LandingWalletDialog').then((module) => module.LandingWalletDialog),
+  { ssr: false },
+)
 
 const BENEFITS = [
   {
@@ -51,15 +55,14 @@ const MARQUEE_ITEMS = [
 
 function Brand() {
   return (
-    <Link href="/" className={styles.brand} aria-label="Shelby Hub home">
-      <Image src="/images/shelby-logo-pink.svg" alt="Shelby Hub" width={172} height={40} className={styles.brandLogo} priority />
+    <Link href="/" className={styles.brand} aria-label="Shelby Scribe home">
+      <Image src="/images/shelby-logo-pink.svg" alt="Shelby Scribe" width={172} height={40} className={styles.brandLogo} priority />
     </Link>
   )
 }
 
 export function LandingPage() {
   const router = useRouter()
-  const { connected } = useWallet()
   const [walletOpen, setWalletOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -95,8 +98,7 @@ export function LandingPage() {
 
   function enterWorkspace() {
     setMenuOpen(false)
-    if (connected) router.push('/reports')
-    else setWalletOpen(true)
+    setWalletOpen(true)
   }
 
   function closeMenu() {
@@ -112,11 +114,11 @@ export function LandingPage() {
           <a href="#intelligence" onClick={closeMenu}>Intelligence</a>
           <a href="#architecture" onClick={closeMenu}>Architecture</a>
           <a href="https://docs.shelby.xyz/" target="_blank" rel="noreferrer" onClick={closeMenu}>SDK Docs ↗</a>
-          <button className={styles.mobileNavCta} onClick={enterWorkspace}>{connected ? 'Enter workspace' : 'Connect & explore'} <span>↗</span></button>
+          <button className={styles.mobileNavCta} onClick={enterWorkspace}>Connect & explore <span>↗</span></button>
         </nav>
         <div className={styles.headerActions}>
           <ThemeToggle />
-          <button className={styles.headerCta} onClick={enterWorkspace}>{connected ? 'Enter workspace' : 'Connect & explore'}</button>
+          <button className={styles.headerCta} onClick={enterWorkspace}>Connect & explore</button>
           <button className={styles.menuButton} onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="landing-navigation" aria-label="Toggle navigation">
             <span /><span />
           </button>
@@ -131,6 +133,8 @@ export function LandingPage() {
             alt="A sunlit research campus rendered in pink and blue pixel art"
             fill
             priority
+            fetchPriority="high"
+            quality={45}
             sizes="(max-width: 720px) 100vw, 94rem"
           />
           <div className={styles.heroShade} />
@@ -141,7 +145,7 @@ export function LandingPage() {
             <p className={styles.heroText}>Reports and smart-money data, delivered through Shelby and settled on Aptos.</p>
             <div className={styles.heroActions}>
               <button className={styles.primaryButton} onClick={enterWorkspace}>
-                <span>{connected ? 'Enter research hub' : 'Connect & explore'}</span><b>↗</b>
+                <span>Connect & explore</span><b>↗</b>
               </button>
               <a className={styles.secondaryButton} href="https://docs.shelby.xyz/" target="_blank" rel="noreferrer">SDK docs</a>
             </div>
@@ -276,7 +280,7 @@ export function LandingPage() {
           <p className={styles.eyebrow}>The research desk is open</p>
           <h2>Find the signal.<br /><span>Own the source.</span></h2>
           <p>Explore independent intelligence or publish research directly to the people who value it.</p>
-          <button className={styles.primaryButton} onClick={enterWorkspace}><span>{connected ? 'Enter research hub' : 'Connect wallet & explore'}</span><b>↗</b></button>
+          <button className={styles.primaryButton} onClick={enterWorkspace}><span>Connect wallet & explore</span><b>↗</b></button>
           <div className={styles.ctaProof}><i /> Encrypted on Shelby · Settled on Aptos</div>
         </section>
       </main>
@@ -290,10 +294,12 @@ export function LandingPage() {
           <a href="https://docs.shelby.xyz/" target="_blank" rel="noreferrer">Docs</a>
           <a href="https://github.com/shelby" target="_blank" rel="noreferrer">GitHub</a>
         </nav>
-        <small>© {new Date().getFullYear()} Shelby Research</small>
+        <small>© {new Date().getFullYear()} Shelby Scribe</small>
       </footer>
 
-      <WalletConnectDialog open={walletOpen} onClose={() => setWalletOpen(false)} onConnected={() => router.push('/reports')} />
+      {walletOpen && (
+        <LandingWalletDialog open onClose={() => setWalletOpen(false)} onConnected={() => router.push('/reports')} />
+      )}
     </div>
   )
 }
