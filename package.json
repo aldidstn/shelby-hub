@@ -22,6 +22,7 @@
     "@aptos-labs/wallet-adapter-core": "^8.5.0",
     "@aptos-labs/wallet-adapter-react": "^8.3.2",
     "@aws-sdk/client-kms": "^3.1073.0",
+    "@next/third-parties": "^16.3.2",
     "@shelby-protocol/sdk": "^0.6.0",
     "@shelby-protocol/sdk-legacy": "npm:@shelby-protocol/sdk@0.2.4",
     "drizzle-orm": "^0.45.2",

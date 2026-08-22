@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
+import { trackWalletConnected } from '@/lib/analytics'
 import styles from './WalletConnectDialog.module.css'
 
 interface WalletConnectDialogProps {
@@ -33,6 +34,7 @@ export function WalletConnectDialog({ open, onClose, onConnected }: WalletConnec
     setError(null)
     try {
       await connect(walletName)
+      trackWalletConnected(walletName)
       onClose()
       onConnected?.()
     } catch (caught) {

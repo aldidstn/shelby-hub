@@ -20,6 +20,7 @@ import {
 } from '@/features/reports/services/upload-prerequisites'
 import layout from '@/styles/layout.module.css'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
+import { trackReportUploaded, trackWalletConnected } from '@/lib/analytics'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -305,6 +306,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
       upsertLocalReport(uploadedReport, walletAddress)
       setTxHash(transactionHash)
       setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
+      trackReportUploaded(uploadedReport)
       onUploadComplete(uploadedReport)
     }
 
@@ -393,6 +395,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
       upsertLocalReport({ ...report, owned: true }, walletAddress)
       setTxHash(registration.hash)
       setProgress({ step: 'done', uploadedBytes: selectedFile.size, totalBytes: selectedFile.size })
+      trackReportUploaded(report)
       onUploadComplete(report)
     } catch (err: unknown) {
       if (access === 'free' && network === 'testnet' && (secureStage === 'auth' || secureStage === 'prepare')) {
@@ -409,6 +412,11 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
       const msg = describeUploadFailure(err, secureStage)
       setProgress((p) => p ? { ...p, step: 'error', errorMessage: msg } : null)
     }
+  }
+
+  async function connectForUpload(walletName: string) {
+    await connect(walletName)
+    trackWalletConnected(walletName)
   }
 
   function handleCopyHash() {
@@ -773,7 +781,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
                 {wallets.map((w) => (
                   <button
                     key={w.name}
-                    onClick={() => connect(w.name)}
+                    onClick={() => void connectForUpload(w.name)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-divider hover:bg-surface text-sm text-text-primary transition-colors"
                   >
                     {w.icon && <Image src={w.icon} alt="" width={20} height={20} unoptimized className="w-5 h-5 rounded" />}

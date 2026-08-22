@@ -11,6 +11,7 @@ import { downloadErrorMessage, downloadReport } from '@/features/reports/service
 import type { Report } from '@/features/reports/types/report'
 import styles from './SharedReportPreview.module.css'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
+import { trackReportDownloaded } from '@/lib/analytics'
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-US', {
@@ -75,6 +76,7 @@ export function SharedReportPreview({ report }: { report: Report }) {
         publicKey: account.publicKey,
         signMessage,
       } : undefined)
+      trackReportDownloaded(report, isOwner ? 'owner' : purchased ? 'purchaser' : 'free')
     } catch (caught) {
       setError(downloadErrorMessage(caught))
     } finally {

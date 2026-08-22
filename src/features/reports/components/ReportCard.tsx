@@ -8,6 +8,7 @@ import { downloadErrorMessage, downloadReport } from '@/features/reports/service
 import { useWalletSession } from '@/features/auth/useWalletSession'
 import styles from './ReportCard.module.css'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
+import { trackReportDownloaded, trackReportShared } from '@/lib/analytics'
 
 const FILE_TYPE_COLORS: Record<string, string> = {
   pdf: styles.filePdf,
@@ -47,6 +48,7 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
   function handleShare() {
     const url = `${window.location.origin}/reports/${encodeURIComponent(report.id)}`
     navigator.clipboard.writeText(url).then(() => {
+      trackReportShared(report)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
@@ -63,6 +65,7 @@ export function ReportCard({ report, purchased = false, walletConnected = false,
         publicKey: account.publicKey,
         signMessage,
       } : undefined)
+      trackReportDownloaded(report, isOwned ? 'owner' : isPurchased ? 'purchaser' : 'free')
     } catch (error) {
       setDownloadError(downloadErrorMessage(error))
     } finally { setDownloading(false) }

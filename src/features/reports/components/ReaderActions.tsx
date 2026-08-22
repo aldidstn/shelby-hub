@@ -5,6 +5,7 @@ import { downloadShelbyBlob, type DownloadStatus } from '../services/shelby-down
 import type { Report } from '../types/report'
 import { downloadErrorMessage, downloadReport, type AceWalletSigner } from '@/features/reports/services/download'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
+import { trackReportDownloaded } from '@/lib/analytics'
 
 interface ReaderActionsProps {
   initialLikes: number
@@ -53,6 +54,7 @@ export function ReaderActions({
     if (report) {
       try {
         await downloadReport(report, aceSigner)
+        trackReportDownloaded(report, report.owned ? 'owner' : report.purchased ? 'purchaser' : report.access === 'free' ? 'free' : 'authorized')
         setDownloadStatus('success')
         setTimeout(() => setDownloadStatus('idle'), 3000)
       } catch (error) {

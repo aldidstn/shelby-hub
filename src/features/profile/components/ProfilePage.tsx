@@ -14,6 +14,7 @@ import { useShelbyNetwork } from '@/features/network/NetworkProvider'
 import { shelbyNetworkLabel } from '@/features/network/network'
 import { ensureWalletNetwork } from '@/features/network/wallet-network'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
+import { trackReportDownloaded } from '@/lib/analytics'
 import layout from '@/styles/layout.module.css'
 
 const FILE_TYPE_LABELS: Record<string, string> = {
@@ -146,6 +147,7 @@ export default function ProfilePage() {
         publicKey: account.publicKey,
         signMessage,
       } : undefined)
+      trackReportDownloaded(report, report.owned ? 'owner' : report.purchased ? 'purchaser' : report.access === 'free' ? 'free' : 'authorized')
     } catch (error) {
       setDownloadError(downloadErrorMessage(error))
     } finally { setDownloadingId(null) }

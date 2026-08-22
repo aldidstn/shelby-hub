@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "@/styles/globals.css";
 import { VantaBackground } from "@/components/layout/VantaBackground";
 import styles from "./layout.module.css";
@@ -62,6 +63,9 @@ const themeScript = `(function(){try{var t=localStorage.getItem('shelby-theme');
 
 const materialSymbolsUrl = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded&icon_names=add,arrow_back,arrow_downward,arrow_forward,arrow_outward,arrow_upward,audio_file,check,check_circle,chevron_left,chevron_right,close,code,content_copy,dark_mode,delete,description,download,error,expand_more,favorite,file_upload,image,info,light_mode,link,lock,menu,mode_edit,monitoring,open_in_new,person,progress_activity,refresh,search,share,table,upload_file,video_file,warning&display=block'
 
+const analyticsId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? 'G-YPQQTEZWGV'
+const analyticsEnabled = process.env.VERCEL_ENV === 'production' || process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -83,6 +87,7 @@ export default function RootLayout({
         <VantaBackground />
         {children}
       </body>
+      {analyticsEnabled && <GoogleAnalytics gaId={analyticsId} />}
     </html>
   );
 }

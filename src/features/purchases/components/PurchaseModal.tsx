@@ -9,6 +9,7 @@ import { purchaseReportPayload, verifyPurchaseTransaction } from '../services/re
 import { ensureWalletNetwork } from '@/features/network/wallet-network'
 import layout from '@/styles/layout.module.css'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
+import { trackReportPurchased, trackWalletConnected } from '@/lib/analytics'
 
 type PurchaseState = 'idle' | 'confirm' | 'pending' | 'success' | 'error'
 
@@ -92,12 +93,19 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
       await confirmPurchase(report!.id, response.hash).catch(() => undefined)
       setTxHash(response.hash)
       setState('success')
+      trackReportPurchased(report!)
       onPurchaseComplete?.(report!)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Transaction failed'
       setErrorMsg(message)
       setState('error')
     }
+  }
+
+  async function connectForPurchase(walletName: string) {
+    await connect(walletName)
+    trackWalletConnected(walletName)
+    setWalletPickerOpen(false)
   }
 
   return (
@@ -217,7 +225,7 @@ export function PurchaseModal({ report, onClose, onPurchaseComplete }: PurchaseM
             {wallets.map((wallet) => (
               <button
                 key={wallet.name}
-                onClick={() => { connect(wallet.name); setWalletPickerOpen(false) }}
+                onClick={() => void connectForPurchase(wallet.name)}
                 className="flex items-center gap-3 px-3 py-2 rounded-md border border-divider hover:bg-surface text-sm text-text-primary transition-colors"
               >
                 {wallet.icon && (
